@@ -210,8 +210,12 @@ if (NOT LLVM_LIBRARY)
                      OUTPUT_VARIABLE LLVM_READER_LIBRARIES
                      OUTPUT_STRIP_TRAILING_WHITESPACE)
         string (REPLACE " " ";" LLVM_READER_LIBRARIES "${LLVM_READER_LIBRARIES}")
+    elseif (FALSE)
+         execute_process (COMMAND ${LLVM_CONFIG} --libfiles engine passes
+                          OUTPUT_VARIABLE LLVM_LIBRARIES
+                          OUTPUT_STRIP_TRAILING_WHITESPACE)
     else ()
-        execute_process (COMMAND ${LLVM_CONFIG} --libfiles engine passes
+        execute_process (COMMAND ${LLVM_CONFIG} --libfiles engine passes orcjit
                          OUTPUT_VARIABLE LLVM_LIBRARIES
                          OUTPUT_STRIP_TRAILING_WHITESPACE)
         set (LLVM_READER_LIBRARIES "" )
