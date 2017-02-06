@@ -819,8 +819,8 @@ LLVM_Util::do_optimize (std::string *out_err)
 
 void
 LLVM_Util::internalize_module_functions (const std::string &prefix,
-                                         const std::vector<std::string> &exceptions,
-                                         const std::vector<std::string> &moreexceptions)
+                                         const string_set &exceptions,
+                                         const string_set &moreexceptions)
 {
 #if OSL_LLVM_VERSION < 40
     for (llvm::Module::iterator iter = module()->begin(); iter != module()->end(); iter++) {
@@ -832,22 +832,9 @@ LLVM_Util::internalize_module_functions (const std::string &prefix,
         std::string symname = sym->getName();
         if (prefix.size() && ! OIIO::Strutil::starts_with(symname, prefix))
             continue;
-        bool needed = false;
-        for (size_t i = 0, e = exceptions.size(); i < e; ++i)
-            if (sym->getName() == exceptions[i]) {
-                needed = true;
-                // std::cout << "    necessary LLVM module function "
-                //           << sym->getName().str() << "\n";
-                break;
-            }
-        for (size_t i = 0, e = moreexceptions.size(); i < e; ++i)
-            if (sym->getName() == moreexceptions[i]) {
-                needed = true;
-                // std::cout << "    necessary LLVM module function "
-                //           << sym->getName().str() << "\n";
-                break;
-            }
-        if (!needed) {
+
+        if (! exceptions.count(sym->getName()) &&
+            ! moreexceptions.count(sym->getName())) {
             llvm::GlobalValue::LinkageTypes linkage = sym->getLinkage();
             // std::cout << "    unnecessary LLVM module function "
             //           << sym->getName().str() << " linkage " << int(linkage) << "\n";
@@ -870,13 +857,8 @@ LLVM_Util::internalize_module_functions (const std::string &prefix,
         std::string symname = sym->getName();
         if (prefix.size() && ! OIIO::Strutil::starts_with(symname, prefix))
             continue;
-        bool needed = false;
-        for (size_t i = 0, e = exceptions.size(); i < e; ++i)
-            if (sym->getName() == exceptions[i]) {
-                needed = true;
-                break;
-            }
-        if (! needed) {
+
+        if (! exceptions.count(sym->getName())) {
             llvm::GlobalValue::LinkageTypes linkage = sym->getLinkage();
             // std::cout << "    unnecessary LLVM global " << sym->getName().str()
             //           << " linkage " << int(linkage) << "\n";
