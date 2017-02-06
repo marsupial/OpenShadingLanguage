@@ -986,6 +986,10 @@ LLVM_Util::setup_optimization_passes (int optlevel)
 #if OSL_LLVM_VERSION <= 34 // Prior behavior, not longer required
         // Always add verifier?
         mpm.add (llvm::createVerifierPass());
+#else
+        // Strip and merge functions. Destroys module on 3.4
+        mpm.add (llvm::createStripDeadPrototypesPass());
+        mpm.add (llvm::createMergeFunctionsPass());
 #endif
 
         // Simplify the call graph if possible (deleting unreachable blocks, etc.)
