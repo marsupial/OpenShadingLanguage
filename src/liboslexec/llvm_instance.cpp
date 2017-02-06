@@ -1139,7 +1139,6 @@ BackendLLVM::run ()
     else
         group().llvm_compiled_version (group().llvm_compiled_layer(nlayers-1));
 
-#if !OSL_USE_ORC_JIT
     // Remove the IR for the group layer functions, we've already JITed it
     // and will never need the IR again.  This saves memory, and also saves
     // a huge amount of time since we won't re-optimize it again and again
@@ -1149,7 +1148,6 @@ BackendLLVM::run ()
             ll.delete_func_body (funcs[i]);
     }
     ll.delete_func_body (init_func);
-#endif
 
     // Free the exec and module to reclaim all the memory.  This definitely
     // saves memory, and has almost no effect on runtime.

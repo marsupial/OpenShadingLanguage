@@ -82,10 +82,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #  include <llvm/ExecutionEngine/Orc/IRCompileLayer.h>
 #  include <llvm/ExecutionEngine/Orc/LazyEmittingLayer.h>
 #  include <llvm/ExecutionEngine/Orc/ObjectLinkingLayer.h>
-#  include <llvm/ExecutionEngine/Orc/CompileOnDemandLayer.h>
-#  include <llvm/ExecutionEngine/Orc/IndirectionUtils.h>
-#  include <llvm/ExecutionEngine/Orc/JITSymbol.h>
-#  include "llvm/ExecutionEngine/Orc/OrcABISupport.h"
 #elif USE_MCJIT
 #  include <llvm/ExecutionEngine/MCJIT.h>
 #elif USE_OLD_JIT
@@ -453,7 +449,6 @@ class LLVM_Util::OrcJIT {
 
     typedef void* (*LazyLookup)(const std::string &);
     static void* default_lookup (const std::string&) { return NULL; }
-    static std::set<llvm::Function*> make_func_set(llvm::Function &F) { return std::set<llvm::Function*>({&F}); }
 
     static void* cast_ptr (uintptr_t ptr) { return reinterpret_cast<void*>(ptr); }
     static uintptr_t cast_ptr (void *ptr) { return reinterpret_cast<uintptr_t>(ptr); }
@@ -469,22 +464,17 @@ public:
     typedef llvm::orc::ObjectLinkingLayer<> ObjectLayer;
     typedef llvm::orc::IRCompileLayer<ObjectLayer> CompileLayer;
 
-    typedef llvm::orc::CompileOnDemandLayer<CompileLayer> CompileODLayer;
-
     // More layers to come....
-    typedef CompileODLayer FinalCompileLayer;
+    typedef CompileLayer FinalCompileLayer;
     typedef FinalCompileLayer::ModuleSetHandleT ModuleHandle;
 
-    FinalCompileLayer &compiler() { return m_compile_od_layer; }
+    FinalCompileLayer &compiler() { return m_compile_layer; }
 
     OrcJIT(llvm::TargetMachine *machine, llvm::Module *module, LLVMMemoryManager* mem_manager) :
         m_machine(machine), m_mem_manager(mem_manager), m_lookup_sym(default_lookup),
         m_data_layout(machine->createDataLayout()),
         m_compile_layer(m_object_layer, SimpleCompiler(*machine)),
-        m_compile_cback(llvm::orc::createLocalCompileCallbackManager(machine->getTargetTriple(), 0)),
-        m_compile_od_layer(m_compile_layer, make_func_set, *m_compile_cback,
-               llvm::orc::createLocalIndirectStubsManagerBuilder(machine->getTargetTriple()))
-        m_linker(*module) {
+        m_symbol_resolver(*this), m_linker(*module) {
             module->setDataLayout (m_data_layout);
         }
 
@@ -502,14 +492,14 @@ public:
     ModuleHandle addModule(llvm::Module *module) {
         llvm::SmallVector<llvm::Module*, 1> mod_set(1, module);
         auto H = compiler().addModuleSet(mod_set, m_mem_manager, // std::unique_ptr<MemoryManager>(new MemoryManager(m_mem_manager))
-                                         llvm::make_unique<SimpleResolver>(*this));
-        //m_module_h.push_back(H);
+                                         m_symbol_resolver);
+        m_module_h.push_back(H);
         return H;
     }
 
     // Remove a module from the JIT.
     void removeModule(ModuleHandle H) {
-        //m_module_h.erase(std::find(m_module_h.begin(), m_module_h.end(), H));
+        m_module_h.erase(std::find(m_module_h.begin(), m_module_h.end(), H));
         compiler().removeModuleSet(H);
     }
 
@@ -520,13 +510,12 @@ public:
             llvm::raw_string_ostream strm(mangled);
             llvm::Mangler::getNameWithPrefix(strm, name, m_data_layout);
         }
-        return m_compile_od_layer.findSymbol(mangled, true);
-/*
+
         for (auto H : llvm::make_range(m_module_h.rbegin(), m_module_h.rend())) {
             if (auto sym = m_compile_layer.findSymbolIn(H, mangled, true))
                 return sym;
+        }
         return NULL;
-*/
     }
 
     void addSingleModule (llvm::Module *module) {
@@ -558,10 +547,8 @@ private:
     llvm::DataLayout m_data_layout;
     ObjectLayer m_object_layer;
     CompileLayer m_compile_layer;
-    std::unique_ptr<llvm::orc::JITCompileCallbackManager> m_compile_cback;
-    CompileODLayer m_compile_od_layer;
-
-    //std::vector<ModuleHandle> m_module_h;
+    std::vector<ModuleHandle> m_module_h;
+    SimpleResolver m_symbol_resolver;
     llvm::Linker m_linker;
 };
 #endif
@@ -942,13 +929,8 @@ LLVM_Util::make_jit_execengine (std::string *err)
 void
 LLVM_Util::execengine (JitEngine exec)
 {
-#if OSL_USE_ORC_JIT
-    // Permit the call with NULL or itself, nothing else.
-    ASSERT (!exec || exec == m_llvm_exec && "Cannot change engine");
-#else
     delete m_llvm_exec;
     m_llvm_exec = exec;
-#endif
 }
 
 
