@@ -36,21 +36,61 @@ cache:
     apt: true
     directories:
       - $HOME/.ccache
+      - $HOME/OSL_build
 
 before_install:
 - |
+  export BOT_ROOT=$HOME/OSL_build
+  export BOT_JOBS=4
+  export SECONDS=0
+  function BotTimeRemaing {
+    local REMAIN=$(expr 35 - $SECONDS / 60)
+    if [[ $REMAIN -gt 0 && ( -z "$1" || $REMAIN -gt $1 ) ]]; then
+      echo $REMAIN
+    fi
+  }
+  function BotGetURL {
+      local URL=$1; shift;
+      local NAME=`basename $URL`
+      wget $URL --no-check-certificate "$@" -qO /tmp/$NAME
+      echo /tmp/$NAME
+  }
+  function BotTmpDir {
+    echo `mktemp -d 2>/dev/null || mktemp -d -t 'tmpdir'`
+  }
+  function BotExtractUrl {
+    local DSTDIR=`BotTmpDir`
+    local URL=$1; shift;
+    local FMT=z
+    local NAME=`basename $URL`
+    local EXT=${NAME##*.}
+    if [[ "$EXT" == "bz2" ]]; then FMT=j; fi;
+    wget $URL --no-check-certificate "$@" -qO- | tar -x${FMT} --strip-components=1 -C "$DSTDIR"
+    echo $DSTDIR
+  }
+  function BotCmakeBuild {
+    local PREFIX=$1; shift;
+    mkdir tmpbuild && pushd tmpbuild
+    echo cmake $CMAKE_FLAGS -DCMAKE_PREFIX_PATH=$BOT_ROOT -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_INSTALL_NAME_DIR=@rpath "$@"
+    cmake $CMAKE_FLAGS -DCMAKE_PREFIX_PATH=$BOT_ROOT -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_INSTALL_NAME_DIR=@rpath "$@" ..
+    make -j $BOT_JOBS install
+    popd
+  }
+  function BotCmakeBuildArk {
+    pushd "$(BotExtractUrl $1)"; shift;
+    BotCmakeBuild "$@"
+    popd
+  }
+
   if [ "$WHICHGCC" == "" ]; then export WHICHGCC="4.8" ; fi
   if [ $TRAVIS_OS_NAME == osx ] ; then
-    export PLATFORM=macosx ;
     sysctl machdep.cpu.features ;
   elif [ $TRAVIS_OS_NAME == linux ] ; then
     # FIXME: Workaround for OIIO needing -ldl
-    export PLATFORM=linux64 ;
+    export LD_LIBRARY_PATH=$BOT_ROOT/lib:$LD_LIBRARY_PATH:/usr/lib/x86_64-linux-gnu
     cat /proc/cpuinfo ;
   fi
-  export OIIOPLATFORM=$PLATFORM
-  if [ "$DEBUG" == 1 ] ; then export PLATFORM=${PLATFORM}.debug ; fi
-  echo "Build platform name is $PLATFORM"
+  export CMAKE_OIIO_FLAGS="-DSTOP_ON_WARNING=OFF -DUSE_OPENJPEG=ON"
 
 install:
 - |
@@ -60,34 +100,28 @@ install:
   if [ $TRAVIS_OS_NAME == osx ] ; then
       src/build-scripts/install_homebrew_deps.bash ;
   elif [ $TRAVIS_OS_NAME == linux ] ; then
-      CXX="ccache $CXX" CCACHE_CPP2=1 src/build-scripts/build_openexr.bash ;
-      export ILMBASE_HOME=$PWD/openexr-install ;
-      export OPENEXR_HOME=$PWD/openexr-install ;
-  fi
-  export OIIOMAKEFLAGS="$OIIOMAKEFLAGS -j2 DEBUG= "
-  src/build-scripts/build_openimageio.bash
-  export OPENIMAGEIOHOME=$PWD/OpenImageIO/dist/$OIIOPLATFORM
-  export DYLD_LIBRARY_PATH=$OPENIMAGEIOHOME/lib:$DYLD_LIBRARY_PATH
-  export LD_LIBRARY_PATH=$OPENIMAGEIOHOME/lib:$LD_LIBRARY_PATH
-  export PATH=$OPENIMAGEIOHOME/bin:$PATH
-  if [ $TRAVIS_OS_NAME == linux ] ; then
       export BUILD_FLAGS="$BUILD_FLAGS LLVM_STATIC=1" ;
       export TEST_FLAGS="-E broken\|render-cornell\|render-oren-nayar\|render-veachmis\|render-ward" ;
+      # ^^^ Linux only, can't make these test work. Exclude for now and return later. ;
   fi
-    # ^^^ Linux only, can't make these test work. Exclude for now and return later. ;
 
-# before_script:
-
+- |
+  # OpenImageIO
+  if [ $(BotTimeRemaing 5) ] && [ ! -d "$BOT_ROOT/include/OpenImageIO" ]; then
+    BotCmakeBuildArk https://github.com/OpenImageIO/oiio/archive/Release-1.7.11.tar.gz "$BOT_ROOT" $CMAKE_OIIO_FLAGS
+  else
+    echo "Using cached OpenImageIO"
+  fi
+  export OPENIMAGEIOHOME=$BOT_ROOT
+  
 script:
 - |
-  make VERBOSE=1 $BUILD_FLAGS cmakesetup
-  make -j2 $BUILD_FLAGS
-  export OSLHOME=$PWD/dist/$PLATFORM
-  export DYLD_LIBRARY_PATH=$OSLHOME/lib:$DYLD_LIBRARY_PATH 
-  export LD_LIBRARY_PATH=$OSLHOME/lib:$LD_LIBRARY_PATH
-  export PYTHONPATH=$OSLHOME/python:$OPENIMAGEIOHOME/python:$PYTHONPATH
-  make $BUILD_FLAGS test
-
+  mkdir -p build && cd build
+  cmake -DOSL_BUILD_TESTS=ON $CMAKE_FLAGS -DCMAKE_PREFIX_PATH=$BOT_ROOT -DCMAKE_INSTALL_PREFIX=$BOT_ROOT -DCMAKE_INSTALL_NAME_DIR=@rpath "$@" ../
+  make -j $BOT_JOBS
+  export OSLHOME=$BOT_ROOT
+  export PYTHONPATH=$OSLHOME/python:$BOT_ROOT/python:$PYTHONPATH
+  ctest --output-on-failure --verbose
 
 after_success:
     - if [ "$CODECOV" == 1 ]; then bash <(curl -s https://codecov.io/bash) ; fi
@@ -98,8 +132,7 @@ after_failure:
 branches:
   only:
     - master
-    - /RB-/
-    - /lg-/
+    - dev
 
 matrix:
     fast_finish: true
