@@ -119,9 +119,13 @@ script:
   mkdir -p build && cd build
   cmake -DOSL_BUILD_TESTS=ON $CMAKE_FLAGS -DCMAKE_PREFIX_PATH=$BOT_ROOT -DCMAKE_INSTALL_PREFIX=$BOT_ROOT -DCMAKE_INSTALL_NAME_DIR=@rpath "$@" ../
   make -j $BOT_JOBS
-  export OSLHOME=$BOT_ROOT
+  #export OSLHOME=$BOT_ROOT
   export PYTHONPATH=$OSLHOME/python:$BOT_ROOT/python:$PYTHONPATH
-  ctest --output-on-failure --verbose
+  pushd /home/travis/build/marsupial/OpenShadingLanguage/testsuite/aastep
+  /home/travis/build/marsupial/OpenShadingLanguage/build/src/oslc/oslc test.osl
+  /home/travis/build/marsupial/OpenShadingLanguage/build/src/testshade/testshade -g 64 64 -od uint8 -o Cout out.tif test 
+  popd
+  ctest --output-on-failure #--verbose
 
 after_success:
     - if [ "$CODECOV" == 1 ]; then bash <(curl -s https://codecov.io/bash) ; fi
