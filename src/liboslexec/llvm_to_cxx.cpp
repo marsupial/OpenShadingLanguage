@@ -267,7 +267,6 @@ bool HexDumper::operator () (const llvm::SmallVectorImpl<char> &buf,
         }
     }
     // No null termination IR size needs to be aligned properly
-    m_output.write(" 0x00");
     m_output.write(" };\n");
 
     // I know the size better.
@@ -278,7 +277,7 @@ bool HexDumper::operator () (const llvm::SmallVectorImpl<char> &buf,
     m_header.write("extern const ", type, sname);
     m_header.write(";\n");
     m_output.write("const ", type, sname);
-    ::fprintf(m_output.f, " = sizeof(%s)-1;\n", aname.c_str());
+    ::fprintf(m_output.f, " = %lu;\n", buf.size());
 
     return true;
 }
