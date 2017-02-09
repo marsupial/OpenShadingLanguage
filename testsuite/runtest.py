@@ -36,14 +36,19 @@ if args and len(args) > 0 :
     os.chdir (srcdir)
 if args and len(args) > 1 :
     path = args[1]
+if args and len(args) > 2 :
+    test_source_dir = args[2]
+else:
+    test_source_dir += os.path.basename(os.path.abspath(srcdir))
+
+
 path = os.path.normpath (path)
+test_source_dir = os.path.normpath (test_source_dir)
 
 tmpdir = "."
 tmpdir = os.path.abspath (tmpdir)
 
 refdir = "ref/"
-parent = "../../../../../"
-test_source_dir = "../../../../testsuite/" + os.path.basename(os.path.abspath(srcdir))
 
 command = ""
 outputs = [ "out.txt" ]    # default
@@ -55,9 +60,11 @@ failpercent = 0.02
 compile_osl_files = True
 splitsymbol = ';'
 
+#print('args: %r' % args)
+#print('path: %s' % path)
+#print('comm: %s' % os.path.join(os.path.dirname(test_source_dir),'common'))
 #print ("srcdir = " + srcdir)
 #print ("tmpdir = " + tmpdir)
-#print ("path = " + path)
 #print ("refdir = " + refdir)
 print ("test source dir = " + test_source_dir)
 
@@ -68,7 +75,10 @@ if os.path.exists (os.path.join (test_source_dir, "src")) and not os.path.exists
 if not os.path.exists("./data") :
     os.symlink (test_source_dir, "./data")
 if not os.path.exists("../common") :
-    os.symlink ("../../../testsuite/common", "../common")
+    os.symlink (os.path.join(os.path.dirname(test_source_dir),'common'), "../common")
+if not os.environ.get('OSLHOME', None) :
+    os.environ['OSLHOME'] = os.path.join(os.path.dirname(os.path.dirname(test_source_dir)),'src')
+    print('Set OSLHOME: %s' % os.environ['OSLHOME'])
 
 ###########################################################################
 
@@ -123,7 +133,7 @@ def oiio_relpath (path, start=os.curdir):
 
 
 def oiio_app (app):
-    if os.environ.__contains__('OPENIMAGEIOHOME') :
+    if os.environ.get('OPENIMAGEIOHOME', None) :
         return os.path.join (os.environ['OPENIMAGEIOHOME'], "bin", app) + " "
     else :
         return app + " "

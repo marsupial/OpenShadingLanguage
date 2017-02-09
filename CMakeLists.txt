@@ -248,6 +248,11 @@ set (OSL_NO_DEFAULT_TEXTURESYSTEM OFF CACHE BOOL "Do not use create a raw OIIO::
 set (OSL_BUILD_PLUGINS ON CACHE BOOL "Bool OSL plugins, for example OIIO plugin")
 set (USE_CCACHE ON CACHE BOOL "Use ccache if found")
 set (CODECOV OFF CACHE BOOL "Build code coverage tests")
+# Use OPENIMAGEIOHOME environment unless -DOPENIMAGEIOHOME= was given
+if (NOT OPENIMAGEIOHOME AND DEFINED ENV{OPENIMAGEIOHOME})
+    set(OPENIMAGEIOHOME $ENV{OPENIMAGEIOHOME})
+    message(STATUS "Using OPENIMAGEIOHOME: ${OPENIMAGEIOHOME}")
+endif ()
 
 # Use ccache if found
 find_program (CCACHE_FOUND ccache)
@@ -504,7 +509,7 @@ macro ( TESTSUITE )
             set (_testname "${_testname}-broken")
         endif ()
         set (_runtest python "${CMAKE_BINARY_DIR}/testsuite/runtest.py"
-                             ${_testdir} ${_extra_test_args})
+                              ${_testdir} ${CMAKE_BINARY_DIR} ${_testsrcdir} ${_extra_test_args})
         if (MSVC_IDE)
             set (_runtest ${_runtest} --devenv-config $<CONFIGURATION>
                                       --solution-path "${CMAKE_BINARY_DIR}" )
@@ -600,6 +605,12 @@ TESTSUITE ( and-or-not-synonyms aastep arithmetic array array-derivs array-range
             vararray-deserialize vararray-param
             vecctr vector
             wavelength_color xml )
+
+# Force the oiio plugin to be loaded
+set_tests_properties(osl-imageio PROPERTIES ENVIRONMENT
+                     OIIO_LIBRARY_PATH=${CMAKE_BINARY_DIR}/src/osl.imageio:$ENV{OIIO_LIBRARY_PATH})
+set_tests_properties(osl-imageio.opt PROPERTIES ENVIRONMENT
+                     OIIO_LIBRARY_PATH=${CMAKE_BINARY_DIR}/src/osl.imageio:$ENV{OIIO_LIBRARY_PATH})
 
 # Only run field3d-related tests if the local OIIO was built with f3d support.
 EXECUTE_PROCESS ( COMMAND ${OPENIMAGEIO_BIN}/oiiotool --help
