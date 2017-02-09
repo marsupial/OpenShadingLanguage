@@ -94,6 +94,7 @@ before_install:
 
 install:
 - |
+  rm -rf $HOME/OSL_build/*
   if [ "$CXX" == "g++" ]; then export CXX="g++-${WHICHGCC}" ; fi
   export USE_CCACHE=1
   export CCACHE_CPP2=1
@@ -104,6 +105,22 @@ install:
       export TEST_FLAGS="-E broken\|render-cornell\|render-oren-nayar\|render-veachmis\|render-ward" ;
       # ^^^ Linux only, can't make these test work. Exclude for now and return later. ;
   fi
+- |
+  # OpenEXR
+  if [ $(BotTimeRemaing 5) ] && [ ! -d "$BOT_ROOT/include/OpenEXR" ]; then
+    pushd `BotExtractUrl https://github.com/openexr/openexr/archive/v2.2.0.tar.gz`
+      ls -l
+      for dir in IlmBase OpenEXR; do
+        pushd $dir
+        BotCmakeBuild "$BOT_ROOT" -DBOOST_ROOT="$BOT_ROOT" -DILMBASE_PACKAGE_PREFIX="$BOT_ROOT"
+        popd
+      done
+    popd
+  else
+    echo "Using cached OpenEXR"
+  fi
+  export ILMBASE_HOME=$BOT_ROOT
+  export OPENEXR_HOME=$BOT_ROOT
 
 - |
   # OpenImageIO

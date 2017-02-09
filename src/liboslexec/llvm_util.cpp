@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "OSL/oslconfig.h"
 #include "OSL/llvm_util.h"
+#include <dlfcn.h>
 
 #if OSL_LLVM_VERSION < 34
 #error "LLVM minimum version required for OSL is 3.4"
@@ -407,6 +408,37 @@ public:
     const llvm::Triple &triple() { return m_triple; }
 };
 
+class LibLookup {
+    void *m_self;
+    LibLookup() {
+        // Use C++ static initializer to make sure this is run once.
+        llvm::sys::DynamicLibrary::LoadLibraryPermanently(NULL);
+        //llvm::sys::DynamicLibrary::LoadLibraryPermanently("/Users/jermainedupris/Downloads/usd/osl4/src/liboslexec/liboslexec.dylib");
+        m_self = dlopen("/Users/jermainedupris/Downloads/usd/osl4/src/liboslexec/liboslexec.dylib", RTLD_LAZY);
+    }
+    ~LibLookup() {
+        //::dlclose(m_self);
+    }
+public:
+    static LibLookup& instance() {
+        static LibLookup s_lib;
+        return s_lib;
+    }
+    uint64_t dl_sym(const std::string &name) {
+        void *ptr = dlsym(m_self, name.c_str());
+        return ptr ? reinterpret_cast<uint64_t>(ptr) :
+                     llvm::RTDyldMemoryManager::getSymbolAddressInProcess(name);
+/*
+static struct File {
+    FILE *f;
+    File() : f(fopen("/Users/jermainedupris/Downloads/usd/osl4/early.txt", "a")) {}
+    ~File() { fclose(f); }
+} file; if (ptr) fprintf(file.f, "%s\n", name.c_str());
+        if (!ptr)
+*/
+        return llvm::RTDyldMemoryManager::getSymbolAddressInProcess(name);
+    }
+};
 
 class LLVM_Util::OrcJIT {
 
@@ -437,7 +469,10 @@ class LLVM_Util::OrcJIT {
             return ptr ? JITEvaluatedSymbol(ptr, llvm::JITSymbolFlags::Exported) : NULL;
         }
         JITEvaluatedSymbol findSymbolInLogicalDylib (const std::string &name) {
-            uint64_t ptr = llvm::RTDyldMemoryManager::getSymbolAddressInProcess(name);
+            //uint64_t ptr1 = LibLookup::instance().dl_sym(name);
+            //return ptr1 ? JITEvaluatedSymbol(ptr1, llvm::JITSymbolFlags::Exported) : NULL;
+            uint64_t ptr = cast_ptr(m_parent.m_lookup_sym(name.substr(1)));
+            if (!ptr) ptr = llvm::RTDyldMemoryManager::getSymbolAddressInProcess(name);
             return ptr ? JITEvaluatedSymbol(ptr, llvm::JITSymbolFlags::Exported) : NULL;
         }
 
