@@ -32,11 +32,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "oslversion.h"
 
 #include <vector>
-#if OSL_CPLUSPLUS_VERSION >= 11
-#  include <unordered_set>
-#else
-#  include <boost/unordered_set.hpp>
-#endif
+#include <unordered_set>
+
 
 #if OSL_LLVM_VERSION >= 37
 #  define OSL_USE_ORC_JIT 1
@@ -81,11 +78,7 @@ OSL_NAMESPACE_ENTER
 namespace pvt {   // OSL::pvt
 
 
-#if OSL_CPLUSPLUS_VERSION >= 11
-    typedef std::unordered_set<std::string> string_set;
-#else
-    typedef boost::unordered_set<std::string> string_set;
-#endif
+typedef std::unordered_set<std::string> string_set;
 
 
 
