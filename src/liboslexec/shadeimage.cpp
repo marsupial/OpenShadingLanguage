@@ -71,11 +71,10 @@ shade_image (ShadingSystem &shadingsys, ShaderGroup &group,
     if (nthreads != 1 && roi.npixels() >= 64*64) {
         // Parallelize
         OIIO::ImageBufAlgo::parallel_image (
-            std::bind (shade_image, std::ref(shadingsys),
-                         std::ref(group), defaultsg,
-                         std::ref(buf), outputs, shadelocations,
-                         std::placeholders::_1 /*roi*/, 1 /*nthreads*/),
-            roi, nthreads);
+           [&] (OIIO::ROI roi) {
+              shade_image(shadingsys, group, defaultsg, buf, outputs,
+                          shadelocations, std::move(roi), 1);
+            }, std::move(roi), nthreads);
         return true;
     }
 
