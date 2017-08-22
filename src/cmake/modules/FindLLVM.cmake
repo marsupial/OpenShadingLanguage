@@ -14,7 +14,6 @@
 # The following input symbols may be used to help guide the search:
 #  LLVM_DIRECTORY   - the root of the LLVM installation (if custom)
 #  LLVM_FIND_QUIETLY - if true, will suppress most console output
-#  LLVM_STATIC      - if true, will prefer static LLVM libs to dynamic
 
 # try to find llvm-config, with a specific version if specified
 if (LLVM_DIRECTORY)
@@ -81,28 +80,15 @@ foreach (COMPONENT clangFrontend clangDriver clangSerialization
 endforeach ()
 
 
-# if (NOT LLVM_LIBRARY)
-#     execute_process (COMMAND ${LLVM_CONFIG} --libfiles engine
-#                      OUTPUT_VARIABLE LLVM_LIBRARIES
-#                      OUTPUT_STRIP_TRAILING_WHITESPACE)
-# endif ()
-
-# shared llvm library may not be available, this is not an error if we use LLVM_STATIC.
-if ((LLVM_LIBRARY OR LLVM_LIBRARIES OR LLVM_STATIC) AND LLVM_INCLUDES AND LLVM_DIRECTORY AND LLVM_LIB_DIR)
-  if (LLVM_STATIC)
-    # if static LLVM libraries were requested, use llvm-config to generate
-    # the list of what libraries we need, and substitute that in the right
-    # way for LLVM_LIBRARY.
-    execute_process (COMMAND ${LLVM_CONFIG} --libfiles
+if (NOT LLVM_LIBRARY)
+    execute_process (COMMAND ${LLVM_CONFIG} --libfiles engine option lto
                      OUTPUT_VARIABLE LLVM_LIBRARIES
                      OUTPUT_STRIP_TRAILING_WHITESPACE)
     string (REPLACE " " ";" LLVM_LIBRARIES "${LLVM_LIBRARIES}")
     set (LLVM_LIBRARY "")
-  else ()
-    set (LLVM_LIBRARIES "${LLVM_LIBRARY}")
-  endif ()
-endif ()
-
+else()
+	set (LLVM_LIBRARIES "${LLVM_LIBRARY}")
+endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args (LLVM
