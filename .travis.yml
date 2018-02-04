@@ -106,7 +106,7 @@ after_failure:
 branches:
   only:
     - master
-    - /RB-/
+    - presubmit
     - /lg-/
 
 matrix:

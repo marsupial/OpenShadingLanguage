@@ -8,7 +8,7 @@ branches:
   only:
     - master
     - release
-    - appveyor
+    - presubmit
     - /RB-/
     - /lg-/
 
@@ -34,7 +34,7 @@ os:
   - Visual Studio 2015
 
 cache:
-  - C:\projects\OSLdeps -> appveyor.yml
+  - C:\projects\OSLdeps
   # The -> means that the cache dir is discarded if appveyor.yml has changed
 
 before_build:
@@ -173,7 +173,7 @@ build_script:
     cmake --build . --config $env:CONFIGURATION $OSL_BUILD_FLAGS
 
     $OSL_BUILD_END=Get-Date
-    if(($OSL_BUILD_END-$OSL_INSTALL_BEGIN).TotalMinutes -gt 50) {
+    if(($OSL_BUILD_END-$OSL_INSTALL_BEGIN).TotalMinutes -gt 150) {
         # Change to appveyor.yml means the cache needs to be rebuilt leaving
         # us with not enough time to run the tests.
         echo "OSL tests skipped in favor of uploading dependency cache"
@@ -184,6 +184,10 @@ build_script:
         ctest -C $env:CONFIGURATION --output-on-failure
     }
 
+on_failure:
+- ps: |
+    iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+    $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 #init:
 #- ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
