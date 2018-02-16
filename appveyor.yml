@@ -37,6 +37,15 @@ environment:
     BOOSTVER: 1_63_0
     LLVMVER: 4
 
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    TOOLSET: 141
+    BOOSTVER: 1_65_1
+    LLVMVER: 4
+
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    TOOLSET: 141
+    BOOSTVER: 1_65_1
+    LLVMVER: 5
 
 before_build:
 - ps: |
@@ -84,6 +93,14 @@ before_build:
 
     # Download the dependencies
     $env:OSL_WINDEPS = "OSLWindowsDependencies-$($env:PLATFORM)-LLVM$($env:LLVMVER)-$($env:TOOLSET)"
+    # Visual Studio 2015 image has working 32bit LLVM
+    # Visual Studio 2017 image has working 64bit LLVM
+    if ((($env:PLATFORM -eq "x64") -And ($env:APPVEYOR_BUILD_WORKER_IMAGE -eq "Visual Studio 2017")) -Or
+        (($env:PLATFORM -eq "x86") -And ($env:APPVEYOR_BUILD_WORKER_IMAGE -eq "Visual Studio 2015"))) {
+        $env:OSL_WINDEPS = "OSLWindowsDependencies-$($env:PLATFORM)-$($env:TOOLSET)"
+        $LLVM_DIR = "C:\Libraries\llvm-$env:LLVMVER.0.0"
+    }
+
     # Try the user's repo first
     Start-FileDownload "https://github.com/$env:APPVEYOR_REPO_NAME/releases/download/WindowsDependencies/$($env:OSL_WINDEPS).zip"
     unzip "$($env:OSL_WINDEPS).zip" -d $DEP_DIR
@@ -147,17 +164,19 @@ before_build:
         cmake --build . --config $env:CONFIGURATION --target INSTALL $OSL_BUILD_FLAGS
 
         # LLVM
-        cd $DWN_DIR
-        git clone --depth 10 --branch "release_$($env:LLVMVER)0" https://github.com/llvm-mirror/llvm.git
-        cd llvm; md "$OSL_INT_DIR" -Force | Out-Null; cd "$OSL_INT_DIR"
-        cmake ..\.. -G "$GENERATOR" -DCMAKE_CONFIGURATION_TYPES="$env:CONFIGURATION" -DCMAKE_PREFIX_PATH="$DEP_DIR" -DCMAKE_INSTALL_PREFIX="$DEP_DIR" -DLLVM_TARGETS_TO_BUILD="X86"
-        cmake --build . --config $env:CONFIGURATION --target INSTALL $OSL_BUILD_FLAGS
+        if ($env:OSL_WINDEPS.IndexOf("LLVM") -gt 0) {
+          cd $DWN_DIR
+          git clone --depth 10 --branch "release_$($env:LLVMVER)0" https://github.com/llvm-mirror/llvm.git
+          cd llvm; md "$OSL_INT_DIR" -Force | Out-Null; cd "$OSL_INT_DIR"
+          cmake ..\.. -G "$GENERATOR" -DCMAKE_CONFIGURATION_TYPES="$env:CONFIGURATION" -DCMAKE_PREFIX_PATH="$DEP_DIR" -DCMAKE_INSTALL_PREFIX="$DEP_DIR" -DLLVM_TARGETS_TO_BUILD="X86"
+          cmake --build . --config $env:CONFIGURATION --target INSTALL $OSL_BUILD_FLAGS
+        }
     }
 
 
 build_script:
 - ps: |
-    if ($env:APPVEYOR_REPO_BRANCH -eq "appveyor") {
+    if (($env:APPVEYOR_REPO_BRANCH -eq "appveyor") -And ($env:OSL_WINDEPS.IndexOf("LLVM") -gt 0)) {
         echo "OSL tests skipped in favor of uploading dependency cache"
         # Echo to build log and Appveyors message page
         Add-AppveyorMessage -Message "OSL tests skipped in favor of uploading dependency cache" -Category Warning
