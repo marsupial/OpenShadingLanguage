@@ -23,19 +23,15 @@ platform:
   # - x86
 
 configuration:
-  #- Debug
   - Release
+  #- Debug
 
 environment:
   matrix:
   #- APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2013
   #  TOOLSET: 120
   #  BOOSTVER: 1_58_0
-  #
-  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-    TOOLSET: 141
-    BOOSTVER: 1_65_1
-    LLVMVER: 4
+  #  LLVMVER: 4
 
   - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
     TOOLSET: 140
@@ -93,13 +89,6 @@ before_build:
 
     # Download the dependencies
     $env:OSL_WINDEPS = "OSLWindowsDependencies-$($env:PLATFORM)-LLVM$($env:LLVMVER)-$($env:TOOLSET)"
-    # Visual Studio 2015 image has working 32bit LLVM
-    # Visual Studio 2017 image has working 64bit LLVM
-    if ((($env:PLATFORM -eq "x64") -And ($env:APPVEYOR_BUILD_WORKER_IMAGE -eq "Visual Studio 2017")) -Or
-        (($env:PLATFORM -eq "x86") -And ($env:APPVEYOR_BUILD_WORKER_IMAGE -eq "Visual Studio 2015"))) {
-        $env:OSL_WINDEPS = "OSLWindowsDependencies-$($env:PLATFORM)-$($env:TOOLSET)"
-        $LLVM_DIR = "C:\Libraries\llvm-$env:LLVMVER.0.0"
-    }
 
     # Try the user's repo first
     Start-FileDownload "https://github.com/$env:APPVEYOR_REPO_NAME/releases/download/WindowsDependencies/$($env:OSL_WINDEPS).zip"
