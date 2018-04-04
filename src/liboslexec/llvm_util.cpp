@@ -243,11 +243,7 @@ public:
 
 
 
-enum { kNoTargetInited = 0, kNativeTargetInited, kNVPTXTargetInited };
-
-
-
-LLVM_Util::LLVM_Util (int debuglevel, bool nvptx)
+LLVM_Util::LLVM_Util (int debuglevel)
     : m_debug(debuglevel), m_thread(NULL),
       m_llvm_context(NULL), m_llvm_module(NULL),
       m_builder(NULL), m_llvm_jitmm(NULL),
@@ -255,9 +251,7 @@ LLVM_Util::LLVM_Util (int debuglevel, bool nvptx)
       m_llvm_module_passes(NULL), m_llvm_func_passes(NULL),
       m_llvm_exec(NULL)
 {
-    // Mark as using NVPTX output if it was requested and initialized properly.
-    m_use_ptx = (SetupLLVM (nvptx) & kNVPTXTargetInited) && nvptx;
-
+    SetupLLVM ();
     m_thread = PerThreadInfo::get();
     ASSERT (m_thread);
 
@@ -323,22 +317,17 @@ LLVM_Util::~LLVM_Util ()
 
 
 
-static unsigned setupNVPTX() {
-#if 1 //OSL_LLVM_CUDA_BITCODE
-    LLVMInitializeNVPTXTargetInfo();
-    LLVMInitializeNVPTXTarget();
-    LLVMInitializeNVPTXTargetMC();
-    LLVMInitializeNVPTXAsmPrinter();
-    return kNVPTXTargetInited;
-#else
-    ASSERT(0 && "CUDA backend requested, but OSL was not built with it!");
-    return kNoTargetInited;
-#endif
-}
+void
+LLVM_Util::SetupLLVM ()
+{
+    // Some global LLVM initialization for the first thread that
+    // gets here.
 
+    static bool setup_done = false;
+    OIIO::spin_lock lock (llvm_global_mutex);
+    if (setup_done)
+        return;
 
-
-static unsigned setupNativeTarget() {
     // LLVMInitializeNativeTarget does most setup, calling:
     //    LLVMInitialize<Arch>TargetInfo();
     //    LLVMInitialize<Arch>Target();
@@ -346,35 +335,21 @@ static unsigned setupNativeTarget() {
     //
     // Both calls use LLVM's 'success == 0' return code convention.
     //
-    if (! LLVMInitializeNativeTarget() && ! LLVMInitializeNativeAsmPrinter())
-        return kNativeTargetInited;
+    if (LLVMInitializeNativeTarget() || LLVMInitializeNativeAsmPrinter()) {
+        // Pretty much impossible as of LLVM-7.
+        ASSERT(0 && "LLVMInitializeNative failed, likely because"
+                    "LLVM_NATIVE_TARGET is not defined properly.");
+        return;
+    }
 
-    // Pretty much impossible as of LLVM-7.
-    ASSERT(0 && "LLVMInitializeNative failed, likely because"
-                "LLVM_NATIVE_TARGET is not defined properly.");
-    return kNoTargetInited;
-}
+#if OSL_LLVM_CUDA_BITCODE
+    LLVMInitializeNVPTXTargetInfo();
+    LLVMInitializeNVPTXTarget();
+    LLVMInitializeNVPTXTargetMC();
+    LLVMInitializeNVPTXAsmPrinter();
+#endif
 
-
-
-unsigned
-LLVM_Util::SetupLLVM (bool nvptx)
-{
-    // Some global LLVM initialization.
-    // Which targets were already initialized is saved into setup_done.
-
-    static unsigned setup_done = 0;
-    OIIO::spin_lock lock (llvm_global_mutex);
-
-    unsigned previously_done = setup_done;
-
-    if (! nvptx ) {
-        if (! (setup_done & kNativeTargetInited))
-            setup_done |= setupNativeTarget();
-    } else if (! (setup_done & kNVPTXTargetInited))
-        setup_done |= setupNVPTX();
-
-    if ((previously_done != setup_done) && debug()) {
+    if (debug()) {
         // Doesn't ever need to be called, just forces a link-time depndency.
         LLVMLinkInMCJIT();
 
@@ -384,7 +359,7 @@ LLVM_Util::SetupLLVM (bool nvptx)
         std::cout << "\n";
     }
 
-    return setup_done;
+    setup_done = true;
 }
 
 
