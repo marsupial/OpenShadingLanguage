@@ -72,7 +72,7 @@ namespace pvt {   // OSL::pvt
 /// tied to OSL internals at all.
 class OSLEXECPUBLIC LLVM_Util {
 public:
-    LLVM_Util (int debuglevel=0);
+    LLVM_Util (int debuglevel=0, bool nvptx=false);
     ~LLVM_Util ();
 
     struct PerThreadInfo;
@@ -508,7 +508,7 @@ private:
     class MemoryManager;
     class IRBuilder;
 
-    void SetupLLVM ();
+    void SetupLLVM (bool nvptx);
     IRBuilder& builder();
 
     int m_debug;
@@ -542,6 +542,7 @@ private:
     llvm::PointerType *m_llvm_type_triple_ptr;
     llvm::PointerType *m_llvm_type_matrix_ptr;
 
+    const unsigned m_use_ptx : 1;
 };
 
 
