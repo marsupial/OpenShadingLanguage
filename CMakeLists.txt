@@ -96,6 +96,7 @@ option (USE_FAST_MATH "Use fast math approximations (if no, then use system math
 option (OSL_BUILD_PLUGINS "Bool OSL plugins, for example OIIO plugin" ON)
 option (OSL_BUILD_SHADERS "Build shaders" ON)
 option (OSL_BUILD_MATERIALX "Build MaterialX shaders" ON)
+option (OSL_BUILD_PYTHON "Build Python bindings" OFF)
 option (USE_BOOST_WAVE "Use Boost Wave for C preprocessor (alternative is to use clang)" OFF)
 option (USE_QT "Include Qt support" ON)
 option (USE_OPTIX "Include OptiX support" OFF)
@@ -156,6 +157,10 @@ add_subdirectory (src/liboslnoise)
 
 add_subdirectory (src/oslc)
 add_subdirectory (src/oslinfo)
+
+if (OSL_BUILD_PYTHON)
+    add_subdirectory (src/python)
+endif()
 
 if (OSL_BUILD_TESTS)
 add_subdirectory (src/testshade)
