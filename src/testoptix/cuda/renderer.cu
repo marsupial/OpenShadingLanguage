@@ -31,8 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <optixu/optixu_math_namespace.h>
 #include <optixu/optixu_vector_types.h>
 
-#include "util.h"
-
+#include "rend_lib.h"
 
 using namespace optix;
 
@@ -43,20 +42,6 @@ rtDeclareVariable (uint2, launch_dim,   rtLaunchDim,   );
 // Scene/Shading variables
 rtDeclareVariable (float3,   bad_color, ,  );
 rtDeclareVariable (float3,   bg_color, ,   );
-rtDeclareVariable (rtObject, top_object, , );
-
-// Ray payload
-rtDeclareVariable (PRD_radiance, prd_radiance, rtPayload, );
-
-// Geometry/Intersection attributes
-rtDeclareVariable (float3, geometric_normal, attribute geometric_normal, );
-rtDeclareVariable (float3, shading_normal,   attribute shading_normal, );
-
-// Camera variables
-rtDeclareVariable (float3, eye, , );
-rtDeclareVariable (float3, dir, , );
-rtDeclareVariable (float3, cx,  , );
-rtDeclareVariable (float3, cy,  , );
 
 rtDeclareVariable (float, invw, , );
 rtDeclareVariable (float, invh, , );
@@ -64,41 +49,50 @@ rtDeclareVariable (float, invh, , );
 // Buffers
 rtBuffer<float3,2> output_buffer;
 
+rtDeclareVariable (rtCallableProgramId<void (void*, void*)>, osl_init_func, , );
+rtDeclareVariable (rtCallableProgramId<void (void*, void*)>, osl_group_func, ,);
 
 RT_PROGRAM void raygen()
 {
     // Compute the pixel coordinates
     float2 d = make_float2 (static_cast<float>(launch_index.x) + 0.5f,
                             static_cast<float>(launch_index.y) + 0.5f);
+#if 0
+    output_buffer[launch_index] = make_float3(d.x * invw, d.y * invh, 0);
+#elif 1
+    // TODO: Fixed-sized allocations can easily be exceeded by arbitrary shader
+    //       networks, so there should be (at least) some mechanism to issue a
+    //       warning or error if the closure or param storage can possibly be
+    //       exceeded.
+    __attribute__((aligned(8))) char closure_pool[256];
+    __attribute__((aligned(8))) char params      [256];
 
-    // Make the ray for the current pixel
-    RayGeometry r;
-    r.origin = eye;
-    r.direction = optix::normalize(cx * (d.x * invw - 0.5f) + cy * (0.5f - d.y * invh) + dir);
+    ShaderGlobals sg;
+    // Setup the ShaderGlobals
+    sg.I           = make_float3(0,0,1);
+    sg.N           = make_float3(0,0,1);
+    sg.Ng          = make_float3(0,0,1);
+    sg.P           = make_float3(d.x, d.y, 0);
+    sg.dPdu        = make_float3(0,0,0); // dPdu;
+    sg.u           = d.x * invw;
+    sg.v           = d.y * invh;
+    sg.Ci          = NULL;
+    sg.surfacearea = 0;
+    sg.backfacing  = 0;
 
-    Ray ray = optix::make_Ray (r.origin, r.direction, 0, 1e-3f, RT_DEFAULT_MAX);
+    // NB: These variables are not used in the current iteration of the sample
+    sg.raytype = CAMERA;
+    sg.flipHandedness = 0;
 
-    // Create a struct to hold the shading result
-    PRD_radiance prd;
-    prd.result = make_float3 (0.0f);
+    // Pack the "closure pool" into one of the ShaderGlobals pointers
+    *(int*) &closure_pool[0] = 0;
+    sg.renderstate = &closure_pool[0];
 
-    // Trace the ray against the scene. The hit/miss program is called before
-    // this call returns.
-    rtTrace (top_object, ray, prd);
+    // Run the OSL group and init functions
+    osl_init_func (&sg, params);
+    osl_group_func(&sg, params);
 
-    // Write the shading result to the output buffer
-    output_buffer[launch_index] = prd.result;
-}
-
-
-RT_PROGRAM void miss()
-{
-    prd_radiance.result = bg_color;
-}
-
-
-RT_PROGRAM void exception()
-{
-    rtPrintExceptionDetails();
-    output_buffer[launch_index] = bad_color;
+    float* output = (float*)params;
+    output_buffer[launch_index] = {output[4], output[5], output[6]};
+#endif
 }

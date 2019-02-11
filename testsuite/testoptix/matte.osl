@@ -36,8 +36,14 @@ matte
             float UImin = 0, float UIsoftmax = 1 ]],
     color Cs = 1
         [[  string description = "Base color",
-            float UImin = 0, float UImax = 1 ]]
+            float UImin = 0, float UImax = 1 ]],
+
+    string filename = "../common/textures/mandrill.tif",
+    output color Color_OutFirst = 1,
+    output color Color_Out = 1
   )
 {
-    Ci = Kd * Cs * diffuse (N);
+    color Ks = texture(filename, u, v);
+    Color_OutFirst = color(1,0,0);
+    Color_Out = Ks;
 }

@@ -48,13 +48,6 @@ struct ShaderGlobals {
 
 enum RayType {
     CAMERA       = 1,
-    SHADOW       = 2,
-    REFLECTION   = 4,
-    REFRACTION   = 8,
-    DIFFUSE      = 16,
-    GLOSSY       = 32,
-    SUBSURFACE   = 64,
-    DISPLACEMENT = 128
 };
 
 

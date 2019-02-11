@@ -117,9 +117,19 @@ public:
         return 0;
     }
 
+    /// Given the name of a texture, return an opaque handle that can be
+    /// used with texture calls to avoid the name lookups.
+    virtual TextureHandle * get_texture_handle (ustring filename);
+
+    /// Return true if the texture handle (previously returned by
+    /// get_texture_handle()) is a valid texture that can be subsequently
+    /// read or sampled.
+    virtual bool good (TextureHandle *texture_handle);
 
 private:
     StringTable m_str_table;
+    optix::TextureSampler m_sampler;
+    //optix::Buffer m_buffer;
 };
 
 

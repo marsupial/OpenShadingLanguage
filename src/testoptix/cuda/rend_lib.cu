@@ -14,157 +14,47 @@ extern "C" {
 
     __device__
     void* closure_component_allot (void* pool, int id, size_t prim_size, const float3& w)
-    {
-        ((ClosureComponent*) pool)->id = id;
-        ((ClosureComponent*) pool)->w  = w;
-
-        size_t needed   = (sizeof(ClosureComponent) - sizeof(void*) + prim_size + 0x7) & ~0x7;
-        char*  char_ptr = (char*) pool;
-
-        return (void*) &char_ptr[needed];
-    }
+    { return 0; }
 
 
     __device__
     void* closure_mul_allot (void* pool, const float3& w, ClosureColor* c)
-    {
-        ((ClosureMul*) pool)->id      = ClosureColor::MUL;
-        ((ClosureMul*) pool)->weight  = w;
-        ((ClosureMul*) pool)->closure = c;
-
-        size_t needed   = (sizeof(ClosureMul) + 0x7) & ~0x7;
-        char*  char_ptr = (char*) pool;
-
-        return &char_ptr[needed];
-    }
+    { return 0; }
 
 
     __device__
     void* closure_mul_float_allot (void* pool, const float& w, ClosureColor* c)
-    {
-        ((ClosureMul*) pool)->id       = ClosureColor::MUL;
-        ((ClosureMul*) pool)->weight.x = w;
-        ((ClosureMul*) pool)->weight.y = w;
-        ((ClosureMul*) pool)->weight.z = w;
-        ((ClosureMul*) pool)->closure  = c;
-
-        size_t needed   = (sizeof(ClosureMul) + 0x7) & ~0x7;
-        char*  char_ptr = (char*) pool;
-
-        return &char_ptr[needed];
-    }
+    { return 0; }
 
 
     __device__
     void* closure_add_allot (void* pool, ClosureColor* a, ClosureColor* b)
-    {
-        ((ClosureAdd*) pool)->id       = ClosureColor::ADD;
-        ((ClosureAdd*) pool)->closureA = a;
-        ((ClosureAdd*) pool)->closureB = b;
-
-        size_t needed   = (sizeof(ClosureAdd) + 0x7) & ~0x7;
-        char*  char_ptr = (char*) pool;
-
-        return &char_ptr[needed];
-    }
+    { return 0; }
 
 
     __device__
     void* osl_allocate_closure_component (void* sg_, int id, int size)
-    {
-        ShaderGlobals* sg_ptr = (ShaderGlobals*) sg_;
-
-        float3 w   = make_float3 (1.0f);
-        void*  ret = sg_ptr->renderstate;
-
-        size = max (4, size);
-
-        sg_ptr->renderstate = closure_component_allot (sg_ptr->renderstate, id, size, w);
-
-        return ret;
-    }
+    { return 0; }
 
 
     __device__
     void* osl_allocate_weighted_closure_component (void* sg_, int id, int size, const float3* w)
-    {
-        ShaderGlobals* sg_ptr = (ShaderGlobals*) sg_;
-
-        if (w->x == 0.0f && w->y == 0.0f && w->z == 0.0f) {
-            return NULL;
-        }
-
-        size = max (4, size);
-
-        void* ret = sg_ptr->renderstate;
-        sg_ptr->renderstate = closure_component_allot (sg_ptr->renderstate, id, size, *w);
-
-        return ret;
-    }
+    { return 0; }
 
 
     __device__
     void* osl_mul_closure_color (void* sg_, ClosureColor* a, float3* w)
-    {
-        ShaderGlobals* sg_ptr = (ShaderGlobals*) sg_;
-
-        if (a == NULL) {
-            return NULL;
-        }
-
-        if (w->x == 0.0f && w->y == 0.0f && w->z == 0.0f) {
-            return NULL;
-        }
-
-        if (w->x == 1.0f && w->y == 1.0f && w->z == 1.0f) {
-            return a;
-        }
-
-        void* ret = sg_ptr->renderstate;
-        sg_ptr->renderstate = closure_mul_allot (sg_ptr->renderstate, *w, a);
-
-        return ret;
-    }
+    { return 0; }
 
 
     __device__
     void* osl_mul_closure_float (void* sg_, ClosureColor* a, float w)
-    {
-        ShaderGlobals* sg_ptr = (ShaderGlobals*) sg_;
-
-        if (a == NULL || w == 0.0f) {
-            return NULL;
-        }
-
-        if (w == 1.0f) {
-            return a;
-        }
-
-        void* ret = sg_ptr->renderstate;
-        sg_ptr->renderstate = closure_mul_float_allot (sg_ptr->renderstate, w, a);
-
-        return ret;
-    }
+    { return 0; }
 
 
     __device__
     void* osl_add_closure_closure (void* sg_, ClosureColor* a, ClosureColor* b)
-    {
-        ShaderGlobals* sg_ptr = (ShaderGlobals*) sg_;
-
-        if (a == NULL) {
-            return b;
-        }
-
-        if (b == NULL) {
-            return a;
-        }
-
-        void* ret = sg_ptr->renderstate;
-        sg_ptr->renderstate = closure_add_allot (sg_ptr->renderstate, a, b);
-
-        return ret;
-    }
+    { return 0; }
 
 
     __device__
@@ -212,5 +102,26 @@ extern "C" {
     void osl_printf (void* sg_, char* fmt_str, void* args)
     {
         printf (fmt_str, args);
+    }
+
+    __device__
+    void* osl_get_texture_options (void *sg_)
+    {
+        return 0;
+    }
+
+    __device__
+    int osl_texture (void *sg_, const char *name, void *handle,
+             void *opt_, float s, float t,
+             float dsdx, float dtdx, float dsdy, float dtdy,
+             int chans, void *result, void *dresultdx, void *dresultdy,
+             void *alpha, void *dalphadx, void *dalphady,
+             void *ustring_errormessage)
+    {
+        if (!handle)
+            return 0;
+        int64_t texID = int64_t(handle);
+        *((float3*)result) = make_float3(optix::rtTex2D<float4>(texID, s, t));
+        return 1;
     }
 }
