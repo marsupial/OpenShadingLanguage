@@ -39,6 +39,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 OSL_NAMESPACE_ENTER
 
+namespace DeviceStrings {
+#define STRDECL(str,var_name) extern const ustring var_name(str);
+#include "OSL/strdecls.h"
+#undef STRDECL
+}
 
 namespace pvt {   // OSL::pvt
 

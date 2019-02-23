@@ -98,14 +98,17 @@ typedef DeviceString StringParam;
 #endif
 
 
-#ifdef __CUDA_ARCH__
 namespace DeviceStrings {
+#ifdef __CUDA_ARCH__
 #define STRDECL(str,var_name)                       \
     extern __device__ OSL::DeviceString var_name;
+#else
+#define STRDECL(str,var_name)                       \
+    extern const ustring var_name;
+#endif
 #include <OSL/strdecls.h>
 #undef STRDECL
 }
-#endif
 
 
 OSL_NAMESPACE_EXIT
