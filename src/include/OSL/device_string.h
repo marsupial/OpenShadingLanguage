@@ -92,7 +92,7 @@ struct DeviceString {
 // DeviceString instead of ustring for some input parameters, so we use this
 // typedef to select the correct type depending on the target.
 #ifndef __CUDA_ARCH__
-typedef OIIO::ustring StringParam;
+typedef ustring StringParam;
 #else
 typedef DeviceString StringParam;
 #endif
