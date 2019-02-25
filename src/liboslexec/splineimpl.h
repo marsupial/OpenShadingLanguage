@@ -56,7 +56,15 @@ struct SplineBasis {
 //
 // ========================================================
 
-static const int kNumSplineTypes = 6;
+enum {
+    kCatmullRom,
+    kBezier,
+    kBSpline,
+    kHermite,
+    kLinear,
+    kConstant,
+    kNumSplineTypes
+};
 
 #ifdef __CUDACC__
     static Spline::SplineBasis gBasisSet[kNumSplineTypes];
@@ -114,18 +122,18 @@ struct SplineInterp {
     OSL_HOSTDEVICE static SplineInterp create(StringParam basis_name)
     {
         if (basis_name == DeviceStrings::catmullrom)
-            return { gBasisSet[0], false };
+            return { gBasisSet[kCatmullRom], false };
         if (basis_name == DeviceStrings::bezier)
-            return { gBasisSet[1], false };
+            return { gBasisSet[kBezier], false };
         if (basis_name == DeviceStrings::bspline)
-            return { gBasisSet[2], false };
+            return { gBasisSet[kBSpline], false };
         if (basis_name == DeviceStrings::hermite)
-            return { gBasisSet[3], false };
+            return { gBasisSet[kHermite], false };
         if (basis_name == DeviceStrings::constant)
-            return { gBasisSet[5], true };
+            return { gBasisSet[kConstant], true };
 
         // Default to linear
-        return { gBasisSet[4], false };
+        return { gBasisSet[kLinear], false };
     }
 
 
