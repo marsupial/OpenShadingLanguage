@@ -56,6 +56,31 @@ namespace pvt {
 
 #ifndef __CUDACC__
 
+
+OSL_SHADEOP OSL_HOSTDEVICE void osl_spline_fff(void *out, const char *spline_, void *x, 
+                                 float *knots, int knot_count, int knot_arraylen)
+{
+  Spline::SplineInterp::create(HDSTR(spline_)).evaluate<float, float, float, float, false>
+      (*(float *)out, *(float *)x, knots, knot_count, knot_arraylen);
+}
+
+OSL_SHADEOP OSL_HOSTDEVICE void osl_splineinverse_fff(void *out, const char *spline_, void *x, 
+                                       float *knots, int knot_count, int knot_arraylen)
+{
+    // Version with no derivs
+  Spline::SplineInterp::create(HDSTR(spline_)).inverse<float>
+      (*(float *)out, *(float *)x, knots, knot_count, knot_arraylen);
+}
+
+OSL_SHADEOP OSL_HOSTDEVICE void osl_splineinverse_dffdf(void *out, const char *spline_, void *x, 
+                                         float *knots, int knot_count, int knot_arraylen)
+{
+    // Ignore knot derivs
+    float outtmp = 0;
+    osl_splineinverse_fff (&outtmp, spline_, x, knots, knot_count, knot_arraylen);
+    DFLOAT(out) = outtmp;
+}
+
 OSL_SHADEOP OSL_HOSTDEVICE void  osl_spline_dfdfdf(void *out, const char *spline_, void *x, 
                                     float *knots, int knot_count, int knot_arraylen)
 {
@@ -121,30 +146,6 @@ OSL_SHADEOP OSL_HOSTDEVICE void osl_splineinverse_dfdfdf(void *out, const char *
 }
 
 #endif
-
-OSL_SHADEOP OSL_HOSTDEVICE void osl_spline_fff(void *out, const char *spline_, void *x, 
-                                 float *knots, int knot_count, int knot_arraylen)
-{
-  Spline::SplineInterp::create(HDSTR(spline_)).evaluate<float, float, float, float, false>
-      (*(float *)out, *(float *)x, knots, knot_count, knot_arraylen);
-}
-
-OSL_SHADEOP OSL_HOSTDEVICE void osl_splineinverse_fff(void *out, const char *spline_, void *x, 
-                                       float *knots, int knot_count, int knot_arraylen)
-{
-    // Version with no derivs
-  Spline::SplineInterp::create(HDSTR(spline_)).inverse<float>
-      (*(float *)out, *(float *)x, knots, knot_count, knot_arraylen);
-}
-
-OSL_SHADEOP OSL_HOSTDEVICE void osl_splineinverse_dffdf(void *out, const char *spline_, void *x, 
-                                         float *knots, int knot_count, int knot_arraylen)
-{
-    // Ignore knot derivs
-    float outtmp = 0;
-    osl_splineinverse_fff (&outtmp, spline_, x, knots, knot_count, knot_arraylen);
-    DFLOAT(out) = outtmp;
-}
 
 
 
