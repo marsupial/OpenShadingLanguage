@@ -40,9 +40,6 @@ rtDeclareVariable (uint2, launch_index, rtLaunchIndex, );
 rtDeclareVariable (uint2, launch_dim,   rtLaunchDim,   );
 
 // Scene/Shading variables
-rtDeclareVariable (float3,   bad_color, ,  );
-rtDeclareVariable (float3,   bg_color, ,   );
-
 rtDeclareVariable (float, invw, , );
 rtDeclareVariable (float, invh, , );
 
@@ -57,9 +54,7 @@ RT_PROGRAM void raygen()
     // Compute the pixel coordinates
     float2 d = make_float2 (static_cast<float>(launch_index.x) + 0.5f,
                             static_cast<float>(launch_index.y) + 0.5f);
-#if 0
-    output_buffer[launch_index] = make_float3(d.x * invw, d.y * invh, 0);
-#elif 1
+
     // TODO: Fixed-sized allocations can easily be exceeded by arbitrary shader
     //       networks, so there should be (at least) some mechanism to issue a
     //       warning or error if the closure or param storage can possibly be
@@ -73,9 +68,23 @@ RT_PROGRAM void raygen()
     sg.N           = make_float3(0,0,1);
     sg.Ng          = make_float3(0,0,1);
     sg.P           = make_float3(d.x, d.y, 0);
-    sg.dPdu        = make_float3(0,0,0); // dPdu;
     sg.u           = d.x * invw;
-    sg.v           = d.y * invh;
+    sg.v           = 1.f - (d.y * invh);
+
+    sg.dudx        = invw;
+    sg.dudy        = 0;
+    sg.dvdx        = 0;
+    sg.dvdy        = -invh;
+    sg.dPdu        = make_float3(d.x, 0, 0);
+    sg.dPdv        = make_float3(0, -d.y, 0);
+
+    sg.dPdu        = make_float3(1.f / invw, 0.f , 0.f);
+    sg.dPdv        = make_float3(0.0f, 1.f / invh, 0.f);
+
+    sg.dPdx        = make_float3(1.f, 0.f, 0.f);
+    sg.dPdy        = make_float3(0.f, 1.f, 0.f);
+    sg.dPdz        = make_float3(0.f, 0.f, 0.f);
+
     sg.Ci          = NULL;
     sg.surfacearea = 0;
     sg.backfacing  = 0;
@@ -93,6 +102,5 @@ RT_PROGRAM void raygen()
     osl_group_func(&sg, params);
 
     float* output = (float*)params;
-    output_buffer[launch_index] = {output[4], output[5], output[6]};
-#endif
+    output_buffer[launch_index] = {output[1], output[2], output[3]};
 }

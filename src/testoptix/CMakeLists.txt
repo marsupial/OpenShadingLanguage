@@ -82,8 +82,6 @@ MACRO ( NVCC_COMPILE cuda_src ptxlist )
             "-I${PROJECT_SOURCE_DIR}/src/include"
             -DOSL_USE_FAST_MATH=1
             -m64 -arch ${CUDA_TARGET_ARCH} -ptx --std=c++11 -O3 --use_fast_math --expt-relaxed-constexpr
-            -ccbin /Users/jermainedupris/local/Developer/Toolchains/XC7.xctoolchain/usr/bin/clang++
-            -isystem /Users/jermainedupris/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include
             ${cuda_src} -o ${cuda_ptx}
         MAIN_DEPENDENCY ${cuda_src}
         DEPENDS ${cuda_src} oslexec

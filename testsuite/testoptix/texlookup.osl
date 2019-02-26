@@ -1,0 +1,9 @@
+
+surface texlookup
+(
+    string TexFile    = "FILE.tx",
+    output color Cout = color(0),
+)
+{
+    Cout = texture(TexFile, u, v, "interp", "linear", "wrap", "clamp");
+}
