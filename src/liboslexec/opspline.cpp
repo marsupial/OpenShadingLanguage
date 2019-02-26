@@ -120,7 +120,7 @@ OSL_SHADEOP OSL_HOSTDEVICE void osl_splineinverse_dfdfdf(void *out, const char *
     osl_splineinverse_dfdff (out, spline_, x, knots, knot_count, knot_arraylen);
 }
 
-#endif
+
 
 OSL_SHADEOP OSL_HOSTDEVICE void osl_spline_fff(void *out, const char *spline_, void *x, 
                                  float *knots, int knot_count, int knot_arraylen)
@@ -146,7 +146,7 @@ OSL_SHADEOP OSL_HOSTDEVICE void osl_splineinverse_dffdf(void *out, const char *s
     DFLOAT(out) = outtmp;
 }
 
-
+#endif
 
 } // namespace pvt
 OSL_NAMESPACE_EXIT
