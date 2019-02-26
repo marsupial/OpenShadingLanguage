@@ -227,4 +227,27 @@ extern "C" {
     {
         printf (fmt_str, args);
     }
+
+    __device__
+    void *
+    osl_get_texture_options (void *sg_)
+    {
+        return 0;
+    }
+
+    __device__
+    int osl_texture (void *sg_, const char *name, void *handle,
+                     void *opt_, float s, float t,
+                     float dsdx, float dtdx, float dsdy, float dtdy,
+                     int chans, void *result, void *dresultdx, void *dresultdy,
+                     void *alpha, void *dalphadx, void *dalphady,
+                     void *ustring_errormessage)
+    {
+        intptr_t hID = intptr_t(handle);
+        ShaderGlobals* sg_ptr = (ShaderGlobals*) sg_;
+        *((float3*)result) = make_float3 (1.0f, 0.2f, 0.1f);
+        *((float3*)result) = make_float3( optix::rtTex2D<float4>(hID, s, 1.f-t) );
+        //printf("texture: %ld\n", hID);
+        return 1;
+    }
 }

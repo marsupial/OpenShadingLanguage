@@ -123,3 +123,31 @@ INSTALL ( TARGETS testoptix RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} )
 # Install the PTX files in a fixed location so that they can be loaded at run time
 INSTALL ( FILES ${ptx_list} DESTINATION ${CMAKE_INSTALL_PREFIX}/ptx/testoptix )
 add_definitions ("-DPTX_PATH=\"${CMAKE_INSTALL_PREFIX}/ptx/testoptix\"")
+
+set ( testoptix_rast_srcs
+       stringtable.cpp
+       testoptix_rast.cpp
+    )
+
+set ( testoptix_rast_cuda_srcs
+       cuda/rast_renderer.cu
+    )
+
+LLVM_COMPILE ( ${CMAKE_CURRENT_SOURCE_DIR}/cuda/rend_lib.cu testoptix_rast_srcs )
+
+# Generate PTX for all of the CUDA files
+foreach (cudasrc ${testoptix_rast_cuda_srcs})
+    NVCC_COMPILE ( ${cudasrc} rast_ptx_list )
+endforeach ()
+
+ADD_CUSTOM_TARGET ( testoptix_rast_ptx ALL
+    DEPENDS ${rast_ptx_list}
+    SOURCES ${testoptix_rast_cuda_srcs} )
+
+ADD_EXECUTABLE ( testoptix_rast ${testoptix_rast_srcs} )
+TARGET_LINK_LIBRARIES ( testoptix_rast oslexec oslquery ${CUDA_LIBRARIES} ${OPTIX_LIBRARIES} ${OPTIX_EXTRA_LIBS} ${OPENIMAGEIO_LIBRARIES} ${Boost_LIBRARIES} ${CMAKE_DL_LIBS} )
+
+INSTALL ( TARGETS testoptix_rast RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} )
+
+# Install the PTX files in a fixed location so that they can be loaded at run time
+INSTALL ( FILES ${rast_ptx_list} DESTINATION ${CMAKE_INSTALL_PREFIX}/ptx/testoptix )
