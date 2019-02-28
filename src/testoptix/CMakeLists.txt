@@ -1,16 +1,18 @@
 # The 'textoptix' executable
 
 set ( testoptix_srcs
+    optixrend.cpp
     shading.cpp
     stringtable.cpp
     testoptix.cpp
     )
 
 set ( testoptix_cuda_srcs
-    cuda/quad.cu
-    cuda/renderer.cu
-    cuda/sphere.cu
-    cuda/wrapper.cu
+     cuda/quad.cu
+     cuda/renderer.cu
+     cuda/tex_renderer.cu
+     cuda/sphere.cu
+     cuda/wrapper.cu
     )
 
 set ( testoptix_cuda_headers
