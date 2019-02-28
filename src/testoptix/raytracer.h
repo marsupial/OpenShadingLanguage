@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 // Converts from Imath::Vec3 to optix::float3
-optix::float3 vec3_to_float3 (const OSL::Vec3& vec)
+static inline optix::float3 vec3_to_float3 (const OSL::Vec3& vec)
 {
     return optix::make_float3 (vec.x, vec.y, vec.z);
 }
@@ -65,8 +65,10 @@ struct Camera {
         cy = (cx.cross(dir)).normalize() * k;
     }
 
+    operator bool () const { return invw > 0 && invh > 0; }
+
     Vec3 eye, dir, cx, cy;
-    float invw, invh;
+    float invw = 0, invh = 0;
 };
 
 
@@ -162,6 +164,12 @@ struct Scene {
     void add_quad(const Quad& q) {
         quads.push_back(q);
     }
+
+    Scene* valid() {
+        return spheres.empty() && quads.empty() ? nullptr : this;
+    }
+
+    Camera camera;
 
     std::vector<Sphere> spheres;
     std::vector<Quad> quads;

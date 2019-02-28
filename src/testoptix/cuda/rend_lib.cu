@@ -4,6 +4,10 @@
 
 #include "rend_lib.h"
 
+#include <OSL/dual.h>
+#include "../liboslexec/splineimpl.h"
+
+rtBuffer<OSL_NAMESPACE::pvt::Spline::SplineBasis> gBasisSet;
 
 rtDeclareVariable (uint2, launch_index, rtLaunchIndex, );
 rtDeclareVariable (uint2, launch_dim,   rtLaunchDim, );
@@ -227,4 +231,80 @@ extern "C" {
     {
         printf (fmt_str, args);
     }
+
+    __device__
+    void* osl_get_texture_options (void *sg_)
+    {
+        return 0;
+    }
+
+    __device__
+    void osl_texture_set_interp_code(void *opt, int mode)
+    {
+        // ((TextureOpt *)opt)->interpmode = (TextureOpt::InterpMode)mode;
+    }
+
+    __device__
+    void osl_texture_set_stwrap_code (void *opt, int mode)
+    {
+        //((TextureOpt *)opt)->swrap = (TextureOpt::Wrap)mode;
+        //((TextureOpt *)opt)->twrap = (TextureOpt::Wrap)mode;
+    }
+
+    __device__
+    int osl_texture (void *sg_, const char *name, void *handle,
+             void *opt_, float s, float t,
+             float dsdx, float dtdx, float dsdy, float dtdy,
+             int chans, void *result, void *dresultdx, void *dresultdy,
+             void *alpha, void *dalphadx, void *dalphady,
+             void *ustring_errormessage)
+    {
+        if (!handle)
+            return 0;
+        int64_t texID = int64_t(handle);
+        *((float3*)result) = make_float3(optix::rtTex2D<float4>(texID, s, t));
+        return 1;
+    }
+
+    using namespace OSL_NAMESPACE::pvt;
+
+    __device__
+    void osl_spline_vfv(float3 *out, const char *spline_, float *x, 
+                        float3 *knots, int knot_count, int knot_arraylen)
+    {
+        Spline::SplineInterp::create(HDSTR(spline_))
+            .evaluate<float3, float, float3, float3, false>
+                (*out, *x, knots, knot_count, knot_arraylen);
+
+    }
+/*
+    __device__
+    void osl_spline_fff(float *out, const char *spline_, float *x, 
+                        float *knots, int knot_count, int knot_arraylen)
+    {
+        Spline::SplineInterp::create(HDSTR(spline_))
+            .evaluate<float, float, float, float, false>
+                (*out, *x, knots, knot_count, knot_arraylen);
+    }
+
+    __device__
+    void osl_splineinverse_fff(float *out, const char *spline_, float *x, 
+                               float *knots, int knot_count, int knot_arraylen)
+    {
+        // Version with no derivs
+        Spline::SplineInterp::create(HDSTR(spline_))
+            .inverse<float>
+                (*out, *x, knots, knot_count, knot_arraylen);
+    }
+
+    __device__
+    void osl_splineinverse_dffdf(float *out, const char *spline_, float *x, 
+                                 float *knots, int knot_count, int knot_arraylen)
+    {
+        // Ignore knot derivs
+        float outtmp = 0;
+        osl_splineinverse_fff (&outtmp, spline_, x, knots, knot_count, knot_arraylen);
+        *out = outtmp;
+    }
+*/
 }
