@@ -299,6 +299,7 @@ OSL_SHADEOP void osl_spline_dfdff(void *out, const char *spline_, void *x,
 OSL_SHADEOP void osl_spline_vfv(void *out, const char *spline_, void *x, 
                                  float3 *knots, int knot_count, int knot_arraylen)
 {
+printf("spline_: %p %s  CONST: %p, %s\n", spline_, ((OSL::DeviceString*)(&spline_))->c_str(), DeviceStrings::constant.c_str(), DeviceStrings::constant.c_str());
   Spline::SplineInterp::create(HDSTR(spline_)).evaluate<float3, float, float3, float3, false>
       (*(float3 *)out, *(float *)x, knots, knot_count, knot_arraylen);
 }

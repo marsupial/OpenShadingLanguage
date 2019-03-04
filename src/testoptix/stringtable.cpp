@@ -120,7 +120,9 @@ uint64_t StringTable::addString (ustring str, ustring var_name)
     // create a variable for strings that do not appear by name in compiled code
     // (in either the OSL library functions or in the renderer).
     if (! var_name.empty()) {
+printf("Adding: %s = '%s' %llx\n", var_name.c_str(),str.c_str(), addr);
         m_optix_ctx [var_name.string()]->setUserData (8, &addr);
+        m_optix_ctx["_ZN9OSL_v1_1113DeviceStrings8constantE"]->setUserData (8, &addr);
     }
 
     return addr;
