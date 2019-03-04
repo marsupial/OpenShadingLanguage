@@ -52,7 +52,7 @@ MACRO ( LLVM_COMPILE llvm_src srclist )
           "-I${ILMBASE_INCLUDE_DIR}"
           "-I${CMAKE_BINARY_DIR}/include"
           "-I${PROJECT_SOURCE_DIR}/src/include"
-#          "-isysroot/Users/jermainedupris/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk"
+          "-isysroot/Users/jermainedupris/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk"
           -D__CUDACC__ -DOSL_COMPILING_TO_BITCODE=1 -DNDEBUG -DOIIO_NO_SSE
           --language=cuda --cuda-device-only --cuda-gpu-arch=${CUDA_TARGET_ARCH}
           ${CUDA_LIB_FLAGS}
@@ -82,8 +82,8 @@ MACRO ( NVCC_COMPILE cuda_src ptxlist )
             "-I${PROJECT_SOURCE_DIR}/src/include"
             -DOSL_USE_FAST_MATH=1
             -m64 -arch ${CUDA_TARGET_ARCH} -ptx --std=c++11 -O3 --use_fast_math --expt-relaxed-constexpr
-#            -ccbin /Users/jermainedupris/local/Developer/Toolchains/XC7.xctoolchain/usr/bin/clang++
-#            -isystem /Users/jermainedupris/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include
+            -ccbin /Users/jermainedupris/local/Developer/Toolchains/XC7.xctoolchain/usr/bin/clang++
+            -isystem /Users/jermainedupris/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/usr/include
             ${cuda_src} -o ${cuda_ptx}
         MAIN_DEPENDENCY ${cuda_src}
         DEPENDS ${cuda_src} oslexec
