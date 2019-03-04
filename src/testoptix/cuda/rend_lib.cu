@@ -7,8 +7,6 @@
 #include <OSL/dual.h>
 #include "../liboslexec/splineimpl.h"
 
-rtBuffer<OSL_NAMESPACE::pvt::Spline::SplineBasis> gBasisSet;
-
 rtDeclareVariable (uint2, launch_index, rtLaunchIndex, );
 rtDeclareVariable (uint2, launch_dim,   rtLaunchDim, );
 rtDeclareVariable (char*, test_str_1, , );
