@@ -17,6 +17,8 @@ extern "C" {
     __device__
     void* closure_component_allot (void* pool, int id, size_t prim_size, const float3& w)
     {
+printf("OSL::DeviceStrings %p %s\n", OSL::DeviceStrings::camera.c_str(), OSL::DeviceStrings::camera.c_str());
+
         ((ClosureComponent*) pool)->id = id;
         ((ClosureComponent*) pool)->w  = w;
 

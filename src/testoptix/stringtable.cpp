@@ -121,6 +121,8 @@ uint64_t StringTable::addString (ustring str, ustring var_name)
     // (in either the OSL library functions or in the renderer).
     if (! var_name.empty()) {
         m_optix_ctx [var_name.string()]->setUserData (8, &addr);
+        //if (var_name == "OSL::DeviceStrings::camera")
+        //    m_optix_ctx ["_ZN16OSL_Arnold_v1_1113DeviceStrings6cameraE"]->setUserData (8, &addr);
     }
 
     return addr;
