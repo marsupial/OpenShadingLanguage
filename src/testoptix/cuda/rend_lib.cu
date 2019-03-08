@@ -274,3 +274,5 @@ extern "C" {
     }
 
 }
+
+#include "../liboslexec/opspline.cpp"
