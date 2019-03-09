@@ -54,58 +54,57 @@ OSL_NAMESPACE_ENTER
 
 namespace pvt {
 
-#ifndef __CUDACC__
 
-OSL_SHADEOP OSL_HOSTDEVICE void  osl_spline_dfdfdf(void *out, const char *spline_, void *x, 
+OSL_SHADEOP void  osl_spline_dfdfdf(void *out, const char *spline_, void *x,
                                     float *knots, int knot_count, int knot_arraylen)
 {
   Spline::SplineInterp::create(HDSTR(spline_)).evaluate<Dual2<float>, Dual2<float>, Dual2<float>, float, true>
       (DFLOAT(out), DFLOAT(x), knots, knot_count, knot_arraylen);
 }
 
-OSL_SHADEOP OSL_HOSTDEVICE void  osl_spline_dffdf(void *out, const char *spline_, void *x, 
+OSL_SHADEOP void  osl_spline_dffdf(void *out, const char *spline_, void *x,
                                    float *knots, int knot_count, int knot_arraylen)
 {
   Spline::SplineInterp::create(HDSTR(spline_)).evaluate<Dual2<float>, float, Dual2<float>, float, true>
-      (DFLOAT(out), *(float *)x, knots, knot_count, knot_arraylen);
+      (DFLOAT(out), *(float *)x,knots, knot_count, knot_arraylen);
 }
 
-OSL_SHADEOP OSL_HOSTDEVICE void  osl_spline_dfdff(void *out, const char *spline_, void *x, 
+OSL_SHADEOP void  osl_spline_dfdff(void *out, const char *spline_, void *x,
                                    float *knots, int knot_count, int knot_arraylen)
 {
   Spline::SplineInterp::create(HDSTR(spline_)).evaluate<Dual2<float>, Dual2<float>, float, float, false>
       (DFLOAT(out), DFLOAT(x), knots, knot_count, knot_arraylen);
 }
 
-OSL_SHADEOP OSL_HOSTDEVICE void  osl_spline_vfv(void *out, const char *spline_, void *x, 
+OSL_SHADEOP void  osl_spline_vfv(void *out, const char *spline_, void *x,
                                  Vec3 *knots, int knot_count, int knot_arraylen)
 {
   Spline::SplineInterp::create(HDSTR(spline_)).evaluate<Vec3, float, Vec3, Vec3, false>
-      (*(Vec3 *)out, *(float *)x, knots, knot_count, knot_arraylen);
+      (*(Vec3 *)out, *(float *)x,knots, knot_count, knot_arraylen);
 }
 
-OSL_SHADEOP OSL_HOSTDEVICE void  osl_spline_dvdfv(void *out, const char *spline_, void *x, 
+OSL_SHADEOP void  osl_spline_dvdfv(void *out, const char *spline_, void *x,
                                    Vec3 *knots, int knot_count, int knot_arraylen)
 {
   Spline::SplineInterp::create(HDSTR(spline_)).evaluate<Dual2<Vec3>, Dual2<float>, Vec3, Vec3, false>
       (DVEC(out), DFLOAT(x), knots, knot_count, knot_arraylen);
 }
 
-OSL_SHADEOP OSL_HOSTDEVICE void  osl_spline_dvfdv(void *out, const char *spline_, void *x, 
+OSL_SHADEOP void  osl_spline_dvfdv(void *out, const char *spline_, void *x,
                                     Vec3 *knots, int knot_count, int knot_arraylen)
 {
   Spline::SplineInterp::create(HDSTR(spline_)).evaluate<Dual2<Vec3>, float, Dual2<Vec3>, Vec3, true>
-      (DVEC(out), *(float *)x, knots, knot_count, knot_arraylen);
+      (DVEC(out), *(float *)x,knots, knot_count, knot_arraylen);
 }
 
-OSL_SHADEOP OSL_HOSTDEVICE void  osl_spline_dvdfdv(void *out, const char *spline_, void *x, 
+OSL_SHADEOP void  osl_spline_dvdfdv(void *out, const char *spline_, void *x,
                                     Vec3 *knots, int knot_count, int knot_arraylen)
 {
   Spline::SplineInterp::create(HDSTR(spline_)).evaluate<Dual2<Vec3>, Dual2<float>, Dual2<Vec3>, Vec3, true>
       (DVEC(out), DFLOAT(x), knots, knot_count, knot_arraylen);
 }
 
-OSL_SHADEOP OSL_HOSTDEVICE void osl_splineinverse_dfdff(void *out, const char *spline_, void *x, 
+OSL_SHADEOP void osl_splineinverse_dfdff(void *out, const char *spline_, void *x,
                                          float *knots, int knot_count, int knot_arraylen)
 {
     // x has derivs, so return derivs as well
@@ -113,39 +112,36 @@ OSL_SHADEOP OSL_HOSTDEVICE void osl_splineinverse_dfdff(void *out, const char *s
       (DFLOAT(out), DFLOAT(x), knots, knot_count, knot_arraylen);
 }
 
-OSL_SHADEOP OSL_HOSTDEVICE void osl_splineinverse_dfdfdf(void *out, const char *spline_, void *x, 
+OSL_SHADEOP void osl_splineinverse_dfdfdf(void *out, const char *spline_, void *x,
                                           float *knots, int knot_count, int knot_arraylen)
 {
     // Ignore knot derivatives
-    osl_splineinverse_dfdff (out, spline_, x, knots, knot_count, knot_arraylen);
+    osl_splineinverse_dfdff (out, spline_, x,knots, knot_count, knot_arraylen);
 }
 
-#endif
-
-OSL_SHADEOP OSL_HOSTDEVICE void osl_spline_fff(void *out, const char *spline_, void *x, 
+OSL_SHADEOP void osl_spline_fff(void *out, const char *spline_, void *x,
                                  float *knots, int knot_count, int knot_arraylen)
 {
   Spline::SplineInterp::create(HDSTR(spline_)).evaluate<float, float, float, float, false>
-      (*(float *)out, *(float *)x, knots, knot_count, knot_arraylen);
+      (*(float *)out, *(float *)x,knots, knot_count, knot_arraylen);
 }
 
-OSL_SHADEOP OSL_HOSTDEVICE void osl_splineinverse_fff(void *out, const char *spline_, void *x, 
+OSL_SHADEOP void osl_splineinverse_fff(void *out, const char *spline_, void *x,
                                        float *knots, int knot_count, int knot_arraylen)
 {
     // Version with no derivs
   Spline::SplineInterp::create(HDSTR(spline_)).inverse<float>
-      (*(float *)out, *(float *)x, knots, knot_count, knot_arraylen);
+      (*(float *)out, *(float *)x,knots, knot_count, knot_arraylen);
 }
 
-OSL_SHADEOP OSL_HOSTDEVICE void osl_splineinverse_dffdf(void *out, const char *spline_, void *x, 
+OSL_SHADEOP void osl_splineinverse_dffdf(void *out, const char *spline_, void *x,
                                          float *knots, int knot_count, int knot_arraylen)
 {
     // Ignore knot derivs
     float outtmp = 0;
-    osl_splineinverse_fff (&outtmp, spline_, x, knots, knot_count, knot_arraylen);
+    osl_splineinverse_fff (&outtmp, spline_, x,knots, knot_count, knot_arraylen);
     DFLOAT(out) = outtmp;
 }
-
 
 
 } // namespace pvt

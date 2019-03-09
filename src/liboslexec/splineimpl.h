@@ -28,6 +28,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#ifdef __CUDACC__
+  #include <optix.h>
+#endif
+
 // avoid naming conflict with MSVC macro
 #ifdef BTYPE
 #undef BTYPE
@@ -67,7 +71,7 @@ enum {
 };
 
 #ifdef __CUDACC__
-    static Spline::SplineBasis gBasisSet[kNumSplineTypes];
+    rtBuffer<OSL_NAMESPACE::pvt::Spline::SplineBasis> gBasisSet;
 #else
     const static Spline::SplineBasis gBasisSet[kNumSplineTypes] = {
     //
