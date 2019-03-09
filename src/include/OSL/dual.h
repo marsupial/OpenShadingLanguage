@@ -61,7 +61,7 @@ class Dual {
     static_assert (PARTIALS>=1, "Can't have a Dual with 0 partials");
 public:
     using value_type = T;
-    static OSL_HOSTDEVICE OIIO_CONSTEXPR14 T zero() { return T(0.0); }
+    static inline OSL_HOSTDEVICE OIIO_CONSTEXPR14 T zero() { return T(0.0); }
 
     /// Default ctr leaves everything uninitialized
     ///
@@ -1013,6 +1013,12 @@ OSL_HOSTDEVICE inline Dual<T,P> smoothstep (const Dual<T,P> &e0, const Dual<T,P>
    return  (T(3) - T(2)*t)*t*t;
 }
 
+
+#ifdef __CUDA_ARCH__
+template<> inline OSL_HOSTDEVICE OIIO_CONSTEXPR14 float3 Dual<float3, 2>::zero() {
+    return float3{0.f, 0.f, 0.f};
+}
+#endif
 
 
 // ceil(Dual) loses derivatives
