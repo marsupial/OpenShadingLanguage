@@ -98,21 +98,21 @@ typedef DeviceString StringParam;
 #endif
 
 
-OSL_NAMESPACE_EXIT
-
-
 #ifdef __CUDA_ARCH__
-namespace OSLDeviceStrings {
+namespace DeviceStrings {
 #define STRDECL(str,var_name)                       \
-    extern __device__ OSL::DeviceString var_name;
+    extern __device__ OSL_NAMESPACE::DeviceString var_name;
 #include <OSL/strdecls.h>
 #undef STRDECL
 }
 #endif
 
 
+OSL_NAMESPACE_EXIT
+
+
 #ifdef __CUDA_ARCH__
-namespace StringParams = OSLDeviceStrings;
+namespace StringParams = OSL_NAMESPACE::DeviceStrings;
 #else
-namespace StringParams = OSL::Strings;
+namespace StringParams = OSL_NAMESPACE::Strings;
 #endif
