@@ -108,12 +108,6 @@ struct PerThreadInfo
 
 
 
-namespace Strings {
-#define STRDECL(str,var_name)                       \
-    extern const ustring var_name;
-#include <OSL/strdecls.h>
-#undef STRDECL
-}; // namespace Strings
 
 
 
