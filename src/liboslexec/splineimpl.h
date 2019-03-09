@@ -71,9 +71,9 @@ enum {
 };
 
 #ifdef __CUDACC__
-    rtBuffer<OSL_NAMESPACE::pvt::Spline::SplineBasis> gBasisSet;
+    rtBuffer<SplineBasis> gBasisSet;
 #else
-    const static Spline::SplineBasis gBasisSet[kNumSplineTypes] = {
+    const static SplineBasis gBasisSet[kNumSplineTypes] = {
     //
     // catmullrom
     //

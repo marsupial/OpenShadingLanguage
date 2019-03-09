@@ -208,7 +208,7 @@ bool OptixRenderer::init(const std::string& progName, int xres, int yres, Scene*
         pvt::Spline::SplineBasis* basis = (pvt::Spline::SplineBasis*) buffer->map();
         ::memcpy(basis, &pvt::Spline::gBasisSet[0], sizeof(pvt::Spline::gBasisSet));
         buffer->unmap();
-        m_context["gBasisSet"]->setBuffer(buffer);
+        m_context[OSL_NAMESPACE_STRING "::pvt::Spline::gBasisSet"]->setBuffer(buffer);
     }
 
     if (scene && ! scene->init(m_context, rendererPTX, m_materials_ptx))
