@@ -69,6 +69,9 @@ namespace pvt {
 
 
 class ColorSystemData {
+    // Pass the Sg->context, for error-reporting (because the const-folder
+    // can call transformc where ShaderGlobals aren't available).
+    //
     using Context = void*;
 public:
     // A colour system is defined by the CIE x and y coordinates of its
@@ -129,6 +132,8 @@ public:
 
     OSL_HOSTDEVICE Dual2<Color3>
     ocio_transform (StringParam fromspace, StringParam tospace, const Dual2<Color3>& C, Context);
+
+    OSL_HOSTDEVICE StringParam colorspace() const { return m_colorspace; }
 
     OSL_HOSTDEVICE void error(StringParam src, StringParam dst, Context);
 

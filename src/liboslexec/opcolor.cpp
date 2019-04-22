@@ -737,7 +737,21 @@ ColorSystemData::blackbody_rgb (float T)
 
 // For Optix, this will be defined by the renderer. Otherwise inline a getter.
 #ifdef __CUDACC__
-    extern __device__ ColorSystemData& osl_color_system_data (void *sg) __attribute__((weak));
+    extern "C" __device__ int
+    rend_get_userdata (StringParam name, void* data, int data_size,
+                       const OSL::TypeDesc& type, int index) __attribute__((weak));
+
+    __device__ ColorSystemData& osl_color_system_data (void *sg) {
+        void* ptr;
+        rend_get_userdata(StringParams::colorsystem, &ptr, 8, OSL::TypeDesc::PTR, 0);
+        return *((ColorSystemData*)ptr);
+    }
+
+    OSL_HOSTDEVICE void
+    ColorSystemData::error(StringParam src, StringParam dst, Context context) {
+        printf("ERROR: Unknown color space transformation \"%s\" -> \"%s\"\n",
+               src.c_str(), dst.c_str());
+    }
 #else
     void
     ColorSystemData::error(StringParam src, StringParam dst, Context context) {
