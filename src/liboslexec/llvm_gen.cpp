@@ -1656,10 +1656,19 @@ LLVMGEN (llvm_gen_transformc)
     Symbol *To = rop.opargsym (op, 2);
     Symbol *C = rop.opargsym (op, 3);
 
-    llvm::Value *args[] = { rop.sg_void_ptr(),
+    llvm::Value *args[7] = { rop.sg_void_ptr(),
         rop.llvm_void_ptr(*C), rop.ll.constant(C->has_derivs()),
-        rop.llvm_void_ptr(*Result), rop.ll.constant(Result->has_derivs()),
-        rop.llvm_load_value(*From), rop.llvm_load_value(*To) };
+        rop.llvm_void_ptr(*Result), rop.ll.constant(Result->has_derivs())
+    };
+
+    if (rop.use_optix() && From->typespec().is_string() && To->typespec().is_string()) {
+        args[5] = rop.llvm_load_device_string (*From);
+        args[6] = rop.llvm_load_device_string (*To);
+    } else {
+        args[5] = rop.llvm_load_value(*From);
+        args[6] = rop.llvm_load_value(*To);
+    }
+
     rop.ll.call_function ("osl_transformc", args);
     return true;
 }

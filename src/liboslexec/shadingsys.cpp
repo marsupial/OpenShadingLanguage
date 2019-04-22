@@ -46,6 +46,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <OpenImageIO/optparser.h>
 #include <OpenImageIO/fmath.h>
 
+#include "opcolor.h"
+
 using namespace OSL;
 using namespace OSL::pvt;
 
@@ -745,7 +747,6 @@ ShadingSystemImpl::ShadingSystemImpl (RendererServices *renderer,
       m_llvm_debug_layers(0), m_llvm_debug_ops(0),
       m_llvm_output_bitcode(0),
       m_commonspace_synonym("world"),
-      m_colorspace("Rec709"),
       m_max_local_mem_KB(2048),
       m_compile_report(false),
       m_buffer_printf(true),
@@ -754,6 +755,7 @@ ShadingSystemImpl::ShadingSystemImpl (RendererServices *renderer,
       m_force_derivs(false),
       m_allow_shader_replacement(false),
       m_exec_repeat(1),
+      m_colorspace("Rec709"),
       m_stat_opt_locking_time(0), m_stat_specialization_time(0),
       m_stat_total_llvm_time(0),
       m_stat_llvm_setup_time(0), m_stat_llvm_irgen_time(0),
@@ -860,7 +862,8 @@ ShadingSystemImpl::ShadingSystemImpl (RendererServices *renderer,
 
     setup_op_descriptors ();
 
-    set_colorspace(m_colorspace);
+    colorsystem().set_colorspace(m_colorspace);
+    ASSERT(colorsystem().set_colorspace(m_colorspace) && "Invalid colorspace");
 }
 
 
@@ -1199,7 +1202,7 @@ ShadingSystemImpl::attribute (string_view name, TypeDesc type,
     }
     if (name == "colorspace" && type == TypeDesc::STRING) {
         ustring c = ustring (*(const char **)val);
-        if (set_colorspace (c))
+        if (colorsystem().set_colorspace(c))
             m_colorspace = c;
         else
             error ("Unknown color space \"%s\"", c.c_str());
@@ -1389,6 +1392,11 @@ ShadingSystemImpl::getattribute (string_view name, TypeDesc type,
     ATTR_DECODE ("stat:mem_inst_connections_current", long long, m_stat_mem_inst_connections.current());
     ATTR_DECODE ("stat:mem_inst_connections_peak", long long, m_stat_mem_inst_connections.peak());
 
+    if (name == "colorsystem" && type.basetype == TypeDesc::PTR) {
+        *(void**)val = &colorsystem();
+        return true;
+    }
+    
     return false;
 #undef ATTR_DECODE
 #undef ATTR_DECODE_STRING

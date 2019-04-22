@@ -274,3 +274,15 @@ extern "C" {
     }
 
 }
+
+#include "../liboslexec/opcolor.h"
+
+OSL_NAMESPACE_ENTER
+namespace pvt {
+    rtBuffer<OSL::pvt::ColorSystemData,1> s_color_system;
+    extern __device__ OSL::pvt::ColorSystemData& osl_color_system_data (void *sg) {
+        return s_color_system[0];
+    }
+}
+OSL_NAMESPACE_EXIT
+

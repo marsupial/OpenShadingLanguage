@@ -33,6 +33,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <OSL/oslconfig.h>
 
 #include "optixgridrender.h"
+#include "../liboslexec/oslexec_pvt.h"
 
 
 // The pre-compiled renderer support library LLVM bitcode is embedded
@@ -44,6 +45,27 @@ extern char rend_llvm_compiled_ops_block[];
 
 OSL_NAMESPACE_ENTER
 
+namespace pvt {
+// White point chromaticities.
+#define IlluminantC   0.3101, 0.3162          /* For NTSC television */
+#define IlluminantD65 0.3127, 0.3291          /* For EBU and SMPTE */
+#define IlluminantE   0.33333333, 0.33333333  /* CIE equal-energy illuminant */
+
+const ColorSystem::Chroma k_color_systems[11] = {
+   // Index, Name       xRed    yRed   xGreen  yGreen   xBlue  yBlue    White point
+   /* 0  Rec709    */ { 0.64,   0.33,   0.30,   0.60,   0.15,   0.06,   IlluminantD65 },
+   /* 1  sRGB      */ { 0.64,   0.33,   0.30,   0.60,   0.15,   0.06,   IlluminantD65 },
+   /* 2  NTSC      */ { 0.67,   0.33,   0.21,   0.71,   0.14,   0.08,   IlluminantC },
+   /* 3  EBU       */ { 0.64,   0.33,   0.29,   0.60,   0.15,   0.06,   IlluminantD65 },
+   /* 4  PAL       */ { 0.64,   0.33,   0.29,   0.60,   0.15,   0.06,   IlluminantD65 },
+   /* 5  SECAM     */ { 0.64,   0.33,   0.29,   0.60,   0.15,   0.06,   IlluminantD65 },
+   /* 6  SMPTE     */ { 0.630,  0.340,  0.310,  0.595,  0.155,  0.070,  IlluminantD65 },
+   /* 7  HDTV      */ { 0.670,  0.330,  0.210,  0.710,  0.150,  0.060,  IlluminantD65 },
+   /* 8  CIE       */ { 0.7355, 0.2645, 0.2658, 0.7243, 0.1669, 0.0085, IlluminantE },
+   /* 9  AdobeRGB  */ { 0.64,   0.33,   0.21,   0.71,   0.15,   0.06,   IlluminantD65 },
+   /* 10 XYZ       */ { 1.0,    0.0,    0.0,    1.0,    0.0,    0.0,    IlluminantE },
+};
+}
 
 OptixGridRenderer::OptixGridRenderer ()
 {
@@ -128,6 +150,16 @@ OptixGridRenderer::init_optix_context (int xres, int yres)
     // Create the OptiX programs and set them on the optix::Context
     m_program = m_optix_ctx->createProgramFromPTXString(renderer_ptx, "raygen");
     m_optix_ctx->setRayGenerationProgram(0, m_program);
+
+    {
+        optix::Buffer buffer = m_optix_ctx->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
+        buffer->setElementSize(sizeof(pvt::ColorSystem::Chroma));
+        buffer->setSize(sizeof(pvt::k_color_systems)/sizeof(pvt::ColorSystem::Chroma));
+        pvt::ColorSystem::Chroma* chrms = (pvt::ColorSystem::Chroma*) buffer->map();
+        ::memcpy(chrms, &pvt::k_color_systems[0], sizeof(pvt::k_color_systems));
+        buffer->unmap();
+        m_optix_ctx[OSL_NAMESPACE_STRING "::pvt::k_color_systems"]->setBuffer(buffer);
+    }
 #endif
     return true;
 }
@@ -191,6 +223,19 @@ OptixGridRenderer::make_optix_materials ()
         m_program["osl_init_func" ]->setProgramId (osl_init );
         m_program["osl_group_func"]->setProgramId (osl_group);
     }
+
+    optix::Buffer buffer = m_optix_ctx->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
+    buffer->setElementSize(sizeof(pvt::ColorSystemData));
+    buffer->setSize(1);
+    pvt::ColorSystemData* clrsys;
+    shadingsys->getattribute("colorsystem", TypeDesc::PTR, (void*)&clrsys);
+    if (clrsys == nullptr) {
+        printf("!NO colorsystem");
+        exit(0);
+    }
+    ::memcpy(buffer->map(), clrsys, sizeof(pvt::ColorSystemData));
+    buffer->unmap();
+    m_optix_ctx[OSL_NAMESPACE_STRING "::pvt::s_color_system"]->setBuffer(buffer);
 #endif
     return true;
 }
