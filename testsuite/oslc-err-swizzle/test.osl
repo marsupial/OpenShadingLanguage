@@ -1,0 +1,25 @@
+
+shader
+test ()
+{
+    color c;
+    c.x = 32;
+    c.y = c.z + c.b;
+    c.f;
+
+    vector vv;
+    vv.r = 32;
+    vv.g = vv.b + 12;
+
+    normal nn;
+    nn.g = nn.b + nn.a;
+    nn.r;
+    c.r = nn.z;
+    c.r = nn.r;
+
+    point pp;
+    pp.f = pp.x + pp.y;
+    pp.r = pp.x + pp.y;
+    pp.z = pp.x + pp.y;
+}
+

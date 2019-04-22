@@ -853,24 +853,15 @@ ASTNode* ASTfieldselect::create (OSLCompilerImpl *comp, ASTNode *expr,
                            static_cast<ASTstructselect*>(expr)->fieldsym()->typespec();
 
     if (type.aggregate() == TypeDesc::VEC3) {
-        int component = -1;
-        switch (field[0]) {
-            case 'r': component = 0; break;
-            case 'g': component = 1; break;
-            case 'b': component = 2; break;
+        const char *names = type.is_vectriple() ? "xyz" : "rgb";
+        for (int i = 0; i < 3; ++i) {
+            if (field[0] == names[i]) {
+                if (expr->nodetype() != index_node)
+                    return new ASTindex (comp, expr, new ASTliteral (comp, i));
 
-            case 'x': component = 0; break;
-            case 'y': component = 1; break;
-            case 'z': component = 2; break;
-
-            default:  break;
-        }
-        if (component != -1) {
-            if (expr->nodetype() == index_node) {
-                static_cast<ASTindex*>(expr)->extend(new ASTliteral (comp, component));
+                static_cast<ASTindex*>(expr)->extend(new ASTliteral (comp, i));
                 return expr;
             }
-            return new ASTindex (comp, expr, new ASTliteral (comp, component));
         }
     }
 
