@@ -2220,7 +2220,7 @@ DECLFOLDER(constfold_transformc)
         }
         if (C.is_constant()) {
             Color3 Cin (C.get_float(0), C.get_float(1), C.get_float(2));
-            Color3 result = rop.shadingsys().colorsystem().transformc (from, to, Cin);
+            Color3 result = rop.shadingsys().colorsystem().transformc (from, to, Cin, rop.shadingcontext());
             rop.turn_into_assign (op, rop.add_constant(result),
                                   "transformc => constant");
             return 1;

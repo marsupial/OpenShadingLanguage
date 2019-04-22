@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2009-2010 Sony Pictures Imageworks Inc., et al.
+Copyright (c) 2009-2019 Sony Pictures Imageworks Inc., et al.
 All Rights Reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -69,6 +69,7 @@ namespace pvt {
 
 
 class ColorSystemData {
+    using Context = void*;
 public:
     // A colour system is defined by the CIE x and y coordinates of its
     // three primary illuminants and its white point.
@@ -115,23 +116,21 @@ public:
     set_colorspace (StringParam colorspace);
 
     OSL_HOSTDEVICE Color3
-    to_rgb (StringParam fromspace, const Color3& C);
+    to_rgb (StringParam fromspace, const Color3& C, Context);
 
     OSL_HOSTDEVICE Color3
-    from_rgb (StringParam fromspace, const Color3& C);
+    from_rgb (StringParam fromspace, const Color3& C, Context);
 
     template <typename Color> OSL_HOSTDEVICE Color
-    transformc (StringParam fromspace, StringParam tospace, const Color& C);
+    transformc (StringParam fromspace, StringParam tospace, const Color& C, Context);
 
     OSL_HOSTDEVICE Color3
-    ocio_transform (StringParam fromspace, StringParam tospace, const Color3& C);
+    ocio_transform (StringParam fromspace, StringParam tospace, const Color3& C, Context);
 
     OSL_HOSTDEVICE Dual2<Color3>
-    ocio_transform (StringParam fromspace, StringParam tospace, const Dual2<Color3>& C);
+    ocio_transform (StringParam fromspace, StringParam tospace, const Dual2<Color3>& C, Context);
 
-    OSL_HOSTDEVICE void error(StringParam src, StringParam dst) {
-        // error ("Unknown color space transformation \"%s\" -> \"%s\"", src, dst);
-    }
+    OSL_HOSTDEVICE void error(StringParam src, StringParam dst, Context);
 
 private:
     // Derived/cached calculations from options:
