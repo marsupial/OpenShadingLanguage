@@ -665,6 +665,10 @@ public:
 
     ColorSystem& colorsystem() { return m_colorsystem; }
 
+    template <typename Color> bool
+    ocio_transform (StringParam fromspace, StringParam tospace,
+                    const Color& C, Color& Cout);
+
 private:
     void printstats () const;
 
@@ -788,6 +792,7 @@ private:
 
     ustring m_colorspace;                 ///< What RGB colors mean
     ColorSystem m_colorsystem;            ///< Data for current colorspace
+    OCIOColorSystem m_ocio_system;        ///< OCIO color system (when OIIO_HAS_COLORPROCESSOR=1)
 
     // Thread safety
     mutable mutex m_mutex;

@@ -149,7 +149,7 @@ OptixGridRenderer::synch_attributes ()
     {
         const char* name = OSL_NAMESPACE_STRING "::pvt::s_color_system";
 
-        pvt::ColorSystemData* colorSys = nullptr;
+        pvt::ColorSystem* colorSys = nullptr;
         shadingsys->getattribute("colorsystem", TypeDesc::PTR, (void*)&colorSys);
         if (colorSys == nullptr) {
             errhandler().error ("No colorsystem available.");
@@ -157,7 +157,7 @@ OptixGridRenderer::synch_attributes ()
         }
 
         // Get the size data-size, minus the ustring size
-        const size_t dataSize = sizeof(pvt::ColorSystemData) - sizeof(StringParam);
+        const size_t dataSize = sizeof(pvt::ColorSystem) - sizeof(StringParam);
 
         optix::Buffer buffer = m_optix_ctx->createBuffer(RT_BUFFER_INPUT, RT_FORMAT_USER);
         if (!buffer) {

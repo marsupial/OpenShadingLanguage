@@ -99,7 +99,7 @@ OSL_CONSTANT_DATA const static float cie_colour_match[81][3] =
 #define IlluminantD65 0.3127, 0.3291          /* For EBU and SMPTE */
 #define IlluminantE   0.33333333, 0.33333333  /* CIE equal-energy illuminant */
 
-OSL_CONSTANT_DATA const static ColorSystemData::Chroma k_color_systems[11] = {
+OSL_CONSTANT_DATA const static ColorSystem::Chroma k_color_systems[11] = {
    // Index, Name       xRed    yRed   xGreen  yGreen   xBlue  yBlue    White point
    /* 0  Rec709    */ { 0.64,   0.33,   0.30,   0.60,   0.15,   0.06,   IlluminantD65 },
    /* 1  sRGB      */ { 0.64,   0.33,   0.30,   0.60,   0.15,   0.06,   IlluminantD65 },
@@ -115,8 +115,8 @@ OSL_CONSTANT_DATA const static ColorSystemData::Chroma k_color_systems[11] = {
 };
 
 
-OSL_HOSTDEVICE const ColorSystemData::Chroma*
-ColorSystemData::fromString(StringParam colorspace) {
+OSL_HOSTDEVICE const ColorSystem::Chroma*
+ColorSystem::fromString(StringParam colorspace) {
     if (colorspace == StringParams::Rec709)
         return &k_color_systems[0];
     if (colorspace == StringParams::sRGB)
@@ -475,7 +475,7 @@ OSL_HOSTDEVICE inline float BB_TABLE_UNMAP(float T) {
 
 
 OSL_HOSTDEVICE bool
-ColorSystemData::set_colorspace (StringParam colorspace)
+ColorSystem::set_colorspace (StringParam colorspace)
 {
     if (colorspace == m_colorspace)
         return true;
@@ -550,72 +550,63 @@ ColorSystemData::set_colorspace (StringParam colorspace)
     return true;
 }
 
-
-#if OIIO_HAS_COLORPROCESSOR
-
-OSL_HOSTDEVICE bool
-OCIOColorSystem::load_transform (StringParam fromspace, StringParam tospace)
-{
-    if (fromspace != m_last_colorproc_fromspace ||
-        tospace != m_last_colorproc_tospace) {
-        m_last_colorproc = m_colorconfig.createColorProcessor (fromspace, tospace);
-        m_last_colorproc_fromspace = fromspace;
-        m_last_colorproc_tospace = tospace;
+// For Optix, this will be defined by the renderer. Otherwise inline a getter.
+#ifdef __CUDACC__
+    OSL_HOSTDEVICE void
+    ColorSystem::error(StringParam src, StringParam dst, Context) {
+        printf("ERROR: Unknown color space transformation \"%s\" -> \"%s\"\n",
+               src.c_str(), dst.c_str());
     }
-    return static_cast<bool>(m_last_colorproc);
-}
 
+    extern "C" __device__ int
+    rend_get_userdata (StringParam name, void* data, int data_size,
+                       const OSL::TypeDesc& type, int index) __attribute__((weak));
+
+    __device__ static inline ColorSystem& op_color_colorsystem (void *sg) {
+        void* ptr;
+        rend_get_userdata(StringParams::colorsystem, &ptr, 8, OSL::TypeDesc::PTR, 0);
+        return *((ColorSystem*)ptr);
+    }
+
+    __device__ static inline void* op_color_context (void*) {
+        return nullptr;
+    }
+#else
+    void
+    ColorSystem::error(StringParam src, StringParam dst, Context context) {
+        context->error("Unknown color space transformation"
+                       " \"%s\" -> \"%s\"", src, dst);
+    }
+
+    static inline ColorSystem& op_color_colorsystem (void *sg) {
+        return ((ShaderGlobals *)sg)->context->shadingsys().colorsystem();
+    }
+
+    static inline OSL::ShadingContext* op_color_context (void *sg) {
+        return (ShadingContext*)((ShaderGlobals *)sg)->context;
+    }
 #endif
 
 
-OSL_HOSTDEVICE Color3
-ColorSystemData::ocio_transform (StringParam fromspace, StringParam tospace,
-                                 const Color3& C, Context context)
+
+template <typename Color> OSL_HOSTDEVICE Color
+ColorSystem::ocio_transform (StringParam fromspace, StringParam tospace,
+                             const Color& C, Context ctx)
 {
 #if OIIO_HAS_COLORPROCESSOR
-    OCIOColorSystem* occio = static_cast<OCIOColorSystem*>(this);
-    if (occio->load_transform(fromspace, tospace)) {
-        Color3 Cout = C;
-        occio->m_last_colorproc->apply ((float *)&Cout);
+    Color Cout;
+    if (ctx->shadingsys().ocio_transform(fromspace, tospace, C, Cout))
         return Cout;
-    }
 #endif
 
-    error (fromspace, tospace, context);
-    return C;
-}
-
-
-
-OSL_HOSTDEVICE Dual2<Color3>
-ColorSystemData::ocio_transform (StringParam fromspace, StringParam tospace,
-                                 const Dual2<Color3>& C, Context context)
-{
-#if OIIO_HAS_COLORPROCESSOR
-    OCIOColorSystem* occio = static_cast<OCIOColorSystem*>(this);
-    if (occio->load_transform(fromspace, tospace)) {
-        Dual2<Color3> Cout;
-        // Use finite differencing to approximate the derivative. Make 3
-        // color values to convert.
-        const float eps = 0.001f;
-        Color3 CC[3] = { C.val(), C.val() + eps*C.dx(), C.val() + eps*C.dy() };
-        occio->m_last_colorproc->apply ((float *)&CC, 3, 1, 3,
-                                        sizeof(float), sizeof(Color3), 0);
-        Cout.set (CC[0],
-                  (CC[1] - CC[0]) * (1.0f / eps),
-                  (CC[2] - CC[0]) * (1.0f / eps));
-        return Cout;
-    }
-#endif
-
-    error (fromspace, tospace, context);
+    error (fromspace, tospace, ctx);
     return C;
 }
 
 
 
 OSL_HOSTDEVICE Color3
-ColorSystemData::to_rgb (StringParam fromspace, const Color3& C, Context context)
+ColorSystem::to_rgb (StringParam fromspace, const Color3& C, Context context)
 {
     if (fromspace == StringParams::RGB || fromspace == StringParams::rgb
          || fromspace == m_colorspace)
@@ -637,7 +628,7 @@ ColorSystemData::to_rgb (StringParam fromspace, const Color3& C, Context context
 
 
 OSL_HOSTDEVICE Color3
-ColorSystemData::from_rgb (StringParam tospace, const Color3& C, Context context)
+ColorSystem::from_rgb (StringParam tospace, const Color3& C, Context context)
 {
     if (tospace == StringParams::RGB || tospace == StringParams::rgb
          || tospace == m_colorspace)
@@ -659,8 +650,8 @@ ColorSystemData::from_rgb (StringParam tospace, const Color3& C, Context context
 
 
 template <typename COLOR> OSL_HOSTDEVICE COLOR
-ColorSystemData::transformc (StringParam fromspace, StringParam tospace,
-                             const COLOR& C, Context context)
+ColorSystem::transformc (StringParam fromspace, StringParam tospace,
+                         const COLOR& C, Context context)
 {
     bool use_colorconfig = false;
     COLOR Crgb;
@@ -712,7 +703,7 @@ ColorSystemData::transformc (StringParam fromspace, StringParam tospace,
 
 
 OSL_HOSTDEVICE Color3
-ColorSystemData::blackbody_rgb (float T)
+ColorSystem::blackbody_rgb (float T)
 {
     if (T < BB_DRAPER)
         return Color3(1.0e-6f,0.0f,0.0f);  // very very dim red
@@ -735,45 +726,13 @@ ColorSystemData::blackbody_rgb (float T)
 
 
 
-// For Optix, this will be defined by the renderer. Otherwise inline a getter.
-#ifdef __CUDACC__
-    extern "C" __device__ int
-    rend_get_userdata (StringParam name, void* data, int data_size,
-                       const OSL::TypeDesc& type, int index) __attribute__((weak));
-
-    __device__ ColorSystemData& osl_color_system_data (void *sg) {
-        void* ptr;
-        rend_get_userdata(StringParams::colorsystem, &ptr, 8, OSL::TypeDesc::PTR, 0);
-        return *((ColorSystemData*)ptr);
-    }
-
-    OSL_HOSTDEVICE void
-    ColorSystemData::error(StringParam src, StringParam dst, Context context) {
-        printf("ERROR: Unknown color space transformation \"%s\" -> \"%s\"\n",
-               src.c_str(), dst.c_str());
-    }
-#else
-    void
-    ColorSystemData::error(StringParam src, StringParam dst, Context context) {
-        ((ShadingContext*)context)->error(
-            "Unknown color space transformation \"%s\" -> \"%s\"", src, dst);
-    }
-
-    static inline ColorSystem& osl_color_system_data (void *sg)
-    {
-        return ((ShaderGlobals *)sg)->context->shadingsys().colorsystem();
-    }
-#endif
-
-
-
 } // namespace pvt
 
 
 
 OSL_SHADEOP OSL_HOSTDEVICE void osl_blackbody_vf (void *sg, void *out, float temp)
 {
-    ColorSystem &cs = osl_color_system_data(sg);
+    ColorSystem &cs = op_color_colorsystem(sg);
     *(Color3 *)out = cs.blackbody_rgb (temp);
 }
 
@@ -781,7 +740,7 @@ OSL_SHADEOP OSL_HOSTDEVICE void osl_blackbody_vf (void *sg, void *out, float tem
 
 OSL_SHADEOP OSL_HOSTDEVICE void osl_wavelength_color_vf (void *sg, void *out, float lambda)
 {
-    ColorSystem &cs = osl_color_system_data(sg);
+    ColorSystem &cs = op_color_colorsystem(sg);
     Color3 rgb = cs.XYZ_to_RGB (wavelength_color_XYZ (lambda));
 //    constrain_rgb (rgb);
     rgb *= 1.0/2.52;    // Empirical scale from lg to make all comps <= 1
@@ -794,7 +753,7 @@ OSL_SHADEOP OSL_HOSTDEVICE void osl_wavelength_color_vf (void *sg, void *out, fl
 
 OSL_SHADEOP OSL_HOSTDEVICE void osl_luminance_fv (void *sg, void *out, void *c)
 {
-    ColorSystem &cs = osl_color_system_data(sg);
+    ColorSystem &cs = op_color_colorsystem(sg);
     ((float *)out)[0] = cs.luminance (((const Color3 *)c)[0]);
 }
 
@@ -802,7 +761,7 @@ OSL_SHADEOP OSL_HOSTDEVICE void osl_luminance_fv (void *sg, void *out, void *c)
 
 OSL_SHADEOP OSL_HOSTDEVICE void osl_luminance_dfdv (void *sg, void *out, void *c)
 {
-    ColorSystem &cs = osl_color_system_data(sg);
+    ColorSystem &cs = op_color_colorsystem(sg);
     ((float *)out)[0] = cs.luminance (((const Color3 *)c)[0]);
     ((float *)out)[1] = cs.luminance (((const Color3 *)c)[1]);
     ((float *)out)[2] = cs.luminance (((const Color3 *)c)[2]);
@@ -813,9 +772,8 @@ OSL_SHADEOP OSL_HOSTDEVICE void osl_luminance_dfdv (void *sg, void *out, void *c
 OSL_SHADEOP OSL_HOSTDEVICE void
 osl_prepend_color_from (void *sg, void *c_, const char *from)
 {
-    ColorSystem &cs = osl_color_system_data(sg);
-    COL(c_) = cs.to_rgb (HDSTR(from), COL(c_),
-                         ((ShaderGlobals *)sg)->context);
+    ColorSystem &cs = op_color_colorsystem(sg);
+    COL(c_) = cs.to_rgb (HDSTR(from), COL(c_), op_color_context(sg));
 }
 
 
@@ -825,14 +783,13 @@ osl_transformc (void *sg, void *Cin, int Cin_derivs,
                 void *Cout, int Cout_derivs,
                 void *from_, void *to_)
 {
-    ColorSystem &cs = osl_color_system_data(sg);
+    ColorSystem &cs = op_color_colorsystem(sg);
     StringParam from = HDSTR(from_);
     StringParam to = HDSTR(to_);
 
     if (Cout_derivs) {
         if (Cin_derivs) {
-            DCOL(Cout) = cs.transformc (from, to, DCOL(Cin),
-                                        ((ShaderGlobals *)sg)->context);
+            DCOL(Cout) = cs.transformc (from, to, DCOL(Cin), op_color_context(sg));
             return true;
         } else {
             // We had output derivs, but not input. Zero the output
@@ -843,8 +800,7 @@ osl_transformc (void *sg, void *Cin, int Cin_derivs,
     }
 
     // No-derivs case
-    COL(Cout) = cs.transformc (from, to, COL(Cin),
-                               ((ShaderGlobals *)sg)->context);
+    COL(Cout) = cs.transformc (from, to, COL(Cin), op_color_context(sg));
     return true;
 }
 

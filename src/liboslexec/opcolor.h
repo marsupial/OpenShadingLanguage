@@ -49,30 +49,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 OSL_NAMESPACE_ENTER
 
+class ShadingContext;
 
 namespace pvt {
 
-// TODO: OCIO is disabled for CUDA, an OCIIO CUDA implementation would be nice,
-//       or at least the ability to transform the ColorProcessorHandle into
-//       the proper data for ColorSystemData.
-//
-// Comple-time typing to the proper implementation. This is done so that the
-// OCIO configuration can still live in ShadingSystemImpl, but the data to
-// upload to the GPU can live in a separate packet (ColorSystemData)
-// where size and field order can be known and/or controlled.
-//
-#if OIIO_HAS_COLORPROCESSOR
-  using ColorSystem = class OCIOColorSystem;
-#else
-  using ColorSystem = class ColorSystemData;
-#endif
 
-
-class ColorSystemData {
-    // Pass the Sg->context, for error-reporting (because the const-folder
-    // can call transformc where ShaderGlobals aren't available).
-    //
+class ColorSystem {
+#ifdef __CUDACC__
     using Context = void*;
+#else
+    using Context = ShadingContext*;
+#endif
 public:
     // A colour system is defined by the CIE x and y coordinates of its
     // three primary illuminants and its white point.
@@ -127,11 +114,8 @@ public:
     template <typename Color> OSL_HOSTDEVICE Color
     transformc (StringParam fromspace, StringParam tospace, const Color& C, Context);
 
-    OSL_HOSTDEVICE Color3
-    ocio_transform (StringParam fromspace, StringParam tospace, const Color3& C, Context);
-
-    OSL_HOSTDEVICE Dual2<Color3>
-    ocio_transform (StringParam fromspace, StringParam tospace, const Dual2<Color3>& C, Context);
+    template <typename Color> OSL_HOSTDEVICE Color
+    ocio_transform (StringParam fromspace, StringParam tospace, const Color& C, Context);
 
     OSL_HOSTDEVICE StringParam colorspace() const { return m_colorspace; }
 
@@ -151,17 +135,16 @@ private:
 };
 
 
+class OCIOColorSystem {
 #if OIIO_HAS_COLORPROCESSOR
-
-class OCIOColorSystem : public ColorSystemData {
 public:
-    OIIO::ColorConfig& colorconfig () { return m_colorconfig; }
 
-    OSL_HOSTDEVICE bool
+    OIIO::ColorProcessorHandle
     load_transform(StringParam fromspace, StringParam tospace);
 
+    const OIIO::ColorConfig& colorconfig () const { return m_colorconfig; }
+
 private:
-    friend class ColorSystemData;
 
     OIIO::ColorConfig m_colorconfig; ///< OIIO/OCIO color configuration
 
@@ -169,9 +152,8 @@ private:
     OIIO::ColorProcessorHandle m_last_colorproc;
     ustring m_last_colorproc_fromspace;
     ustring m_last_colorproc_tospace;
-};
-
 #endif
+};
 
 } // namespace pvt
 
