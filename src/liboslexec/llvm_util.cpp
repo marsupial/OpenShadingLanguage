@@ -72,6 +72,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <llvm/Transforms/IPO/PassManagerBuilder.h>
 #include <llvm/ExecutionEngine/SectionMemoryManager.h>
 #include <llvm/Transforms/Scalar/GVN.h>
+#include "llvm/Transforms/AggressiveInstCombine/AggressiveInstCombine.h"
 
 #if OSL_LLVM_VERSION >= 70
 #include <llvm/Transforms/Utils.h>
@@ -531,6 +532,7 @@ LLVM_Util::setup_optimization_passes (int optlevel)
         // builder.DisableUnrollLoops = true;
         builder.populateFunctionPassManager (fpm);
         builder.populateModulePassManager (mpm);
+        mpm.add(llvm::createAggressiveInstCombinerPass());
     } else {
         // Unknown choices for llvm_optimize: use the same basic
         // set of passes that we always have.
@@ -543,7 +545,7 @@ LLVM_Util::setup_optimization_passes (int optlevel)
         //  mpm.add (llvm::createPromoteMemoryToRegisterPass());
 
         // Combine instructions where possible -- peephole opts & bit-twiddling
-        mpm.add (llvm::createInstructionCombiningPass());
+        mpm.add (llvm::createInstructionCombiningPass(true));
         // Inline small functions
         mpm.add (llvm::createFunctionInliningPass());  // 250?
         // Eliminate early returns
@@ -557,7 +559,7 @@ LLVM_Util::setup_optimization_passes (int optlevel)
         // More dead code elimination
         mpm.add (llvm::createAggressiveDCEPass());
         // Combine instructions where possible -- peephole opts & bit-twiddling
-        mpm.add (llvm::createInstructionCombiningPass());
+        mpm.add (llvm::createAggressiveInstCombinerPass());
         // Simplify the call graph if possible (deleting unreachable blocks, etc.)
         mpm.add (llvm::createCFGSimplificationPass());
         // Try to make stuff into registers one last time.

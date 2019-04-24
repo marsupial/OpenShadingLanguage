@@ -42,6 +42,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "../liboslcomp/oslcomp_pvt.h"
 #include "backendllvm.h"
 
+#include <llvm/Passes/PassBuilder.h>
+#include <llvm/Analysis/ProfileSummaryInfo.h>
+#include <llvm/Transforms/IPO.h>
+#include <llvm/Transforms/IPO/PartialInlining.h>
+
 // Create extrenal declarations for all built-in funcs we may call from LLVM
 #define DECL(name,signature) extern "C" void name();
 #include "builtindecl.h"
@@ -1223,9 +1228,68 @@ BackendLLVM::run ()
         }
     }
 
+    auto inliner = [&](llvm::Module &M) {
+        using namespace llvm;
+        for (auto& F : M.getFunctionList()) {
+          if (F.hasFnAttribute(Attribute::NoInline)) {
+            F.removeFnAttr(Attribute::NoInline);
+          }
+          if (!F.hasFnAttribute(Attribute::AlwaysInline)) {
+            F.addFnAttr(Attribute::AlwaysInline);
+          }
+          llvm::outs() << F.getName() << " " << F.isDiscardableIfUnused() << "\n";
+        }
+        for (auto &GO : M.global_objects()) {
+          if (GO.getValueID() == Value::FunctionVal) {
+            Function* F = cast<Function>(&GO);
+            if (F->isIntrinsic() || F->isDeclaration())
+              continue;
+          }
+          GO.setLinkage(GlobalValue::PrivateLinkage);
+        }
+      };
+    inliner(*ll.module());
+/*
+{
+    using namespace llvm;
+    bool DebugPassManager = false;
+    PassBuilder PB(Machine, None);
+    
+    LoopAnalysisManager LAM;
+    FunctionAnalysisManager FAM;
+    CGSCCAnalysisManager CGAM;
+    ModuleAnalysisManager MAM;
+
+    // Register the AA manager first so that our version is the one used.
+    FAM.registerPass([&] { return PB.buildDefaultAAPipeline(); });
+
+    // Register all the basic analyses with the managers.
+    PB.registerModuleAnalyses(MAM);
+    PB.registerCGSCCAnalyses(CGAM);
+    PB.registerFunctionAnalyses(FAM);
+    PB.registerLoopAnalyses(LAM);
+    PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
+
+    ModulePassManager MPM(DebugPassManager);
+    //MPM.addPass(StripUnused(Mod, Entry, Mod->getFunction("main")));
+    MPM.addPass(PartialInlinerPass());
+    //MPM.addPass(PB.buildModuleOptimizationPipeline(PassBuilder::O3));
+    MPM.addPass(PB.buildPerModuleDefaultPipeline(PassBuilder::O3));
+    MPM.run(*ll.module(), MAM);    
+}
+https://github.com/pocl/pocl/blob/master/lib/CL/devices/cuda/pocl-ptx-gen.cc
+*/
     // Optimize the LLVM IR unless it's a do-nothing group.
     if (! group().does_nothing())
         ll.do_optimize();
+    else
+        ll.do_optimize();
+
+    inliner(*ll.module());
+    for (int i = 0; i < nlayers; ++i) {
+        if (funcs[i])
+            llvm::outs() << "*** '" << funcs[i]->getName() << "'\n";
+    }
 
     m_stat_llvm_opt_time += timer.lap();
 
@@ -1253,6 +1317,8 @@ BackendLLVM::run ()
     }
 
 #if OSL_LLVM_SPIRV_SUPPORT
+
+
     std::string errs;
     llvm::outs() << *ll.module() << "\n";
     ll.module()->setTargetTriple("spir64-unknown-unknown");
