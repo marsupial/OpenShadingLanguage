@@ -1252,6 +1252,20 @@ BackendLLVM::run ()
         }
     }
 
+#if OSL_LLVM_SPIRV_SUPPORT
+    std::string errs;
+    llvm::outs() << *ll.module() << "\n";
+    ll.module()->setTargetTriple("spir64-unknown-unknown");
+    auto Err = ll.module()->materializeAll();
+    if (Err)
+      llvm::errs() << "MATERIALIZE ERR: " << Err << "\n";
+    regularizeLlvmForSpirv(ll.module(), errs);
+    if (errs.empty())
+      writeSpirv(ll.module(), llvm::outs(), errs);
+    if (!errs.empty())
+      llvm::errs() << "ERROR: " << errs << "\n";
+#endif
+
     if (use_optix()) {
         // Create an llvm::Module from the renderer-supplied library bitcode
         std::vector<char>& bitcode = shadingsys().m_lib_bitcode;

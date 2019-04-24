@@ -42,6 +42,10 @@ using namespace OSL::pvt;
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/Module.h"
+#if OSL_LLVM_SPIRV_SUPPORT
+  #include "llvm/Support/Error.h"
+  #include "LLVMSPIRVLib/LLVMSPIRVLib.h"
+#endif
 
 
 OSL_NAMESPACE_ENTER
