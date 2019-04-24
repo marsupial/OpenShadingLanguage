@@ -176,6 +176,10 @@ else ()
     SET (liboslexec_srcs ${liboslexec_srcs} llvm_ops.cpp)
 endif ()
 
+if (USE_SPIRV)
+    ADD_DEFINITIONS (-DOSL_LLVM_SPIRV_SUPPORT=1)
+endif()
+
 if (BUILDSTATIC)
     ADD_LIBRARY ( oslexec STATIC ${liboslexec_srcs} )
 else ()

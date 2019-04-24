@@ -64,6 +64,12 @@ find_library ( LLVM_MCJIT_LIBRARY
                NAMES LLVMMCJIT
                PATHS ${LLVM_LIB_DIR})
 
+if (USE_SPIRV)
+    find_library ( LLVM_SPIRV_LIB
+                   NAMES LLVMSPIRVLib
+                   PATHS ${LLVM_LIB_DIR})
+endif()
+
 foreach (COMPONENT clangFrontend clangDriver clangSerialization
                    clangParse clangSema clangAnalysis clangAST clangBasic
                    clangEdit clangLex)
@@ -103,6 +109,14 @@ find_package_handle_standard_args (LLVM
 
 if (LLVM_FOUND)
     message (STATUS "LLVM version  = ${LLVM_VERSION}")
+    if (USE_SPIRV)
+        if (NOT LLVM_SPIRV_LIB)
+            message (STATUS "Disabling SPIRV support")
+            set(USE_SPIRV OFF FORCE)
+        else()
+            list(APPEND LLVM_LIBRARIES ${LLVM_SPIRV_LIB})
+        endif()
+    endif()
     if (NOT LLVM_FIND_QUIETLY)
         message (STATUS "LLVM dir        = ${LLVM_DIRECTORY}")
         message (STATUS "LLVM includes   = ${LLVM_INCLUDES}")
@@ -110,6 +124,9 @@ if (LLVM_FOUND)
         message (STATUS "LLVM libraries  = ${LLVM_LIBRARIES}")
         message (STATUS "LLVM sys libs   = ${LLVM_SYSTEM_LIBRARIES}")
         message (STATUS "Clang libraries = ${CLANG_LIBRARIES}")
+        if (USE_SPIRV)
+            message (STATUS "LLVM SPIRV lib  = ${LLVM_SPIRV_LIB}")
+        endif()
     endif ()
 else()
     message (STATUS "LLVM not found. Specify LLVM_DIRECTORY to locate it.")

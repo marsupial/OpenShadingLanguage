@@ -101,6 +101,7 @@ option (OSL_BUILD_MATERIALX "Build MaterialX shaders" ON)
 option (USE_BOOST_WAVE "Use Boost Wave for C preprocessor (alternative is to use clang)" OFF)
 option (USE_QT "Include Qt support" ON)
 option (USE_OPTIX "Include OptiX support" OFF)
+option (USE_SPIRV "Include SpirV support" OFF)
 set (OPTIX_EXTRA_LIBS CACHE STRING "Extra lib targets needed for OptiX")
 set (CUDA_TARGET_ARCH "sm_35" CACHE STRING "CUDA GPU architecture (e.g. sm_35)")
 set (OSL_SHADER_INSTALL_DIR "${CMAKE_INSTALL_FULL_DATADIR}/${PROJECT_NAME}/shaders"
