@@ -1278,6 +1278,23 @@ BackendLLVM::run ()
     MPM.run(*ll.module(), MAM);    
 }
 https://github.com/pocl/pocl/blob/master/lib/CL/devices/cuda/pocl-ptx-gen.cc
+
+#version 410
+
+layout(location = 0) in  float vala;
+layout(location = 1) in  float valb;
+
+layout(location = 0) out float valout;
+
+void main() {
+  float a = vala >= 0.0 ? vala : -vala;
+  bool  b = valb >= 0.0;
+  valout = b ? a : -a;
+}
+
+~/local/spivr/bin/glslangValidator -V -H  test.frag.glsl
+~/local/spivr/bin/spirv-cross --version 450 --no-es test.spv --output test.comp
+ ~/repos/build/llvm-release/bin/llvm-spirv -to-text test.spv
 */
     // Optimize the LLVM IR unless it's a do-nothing group.
     if (! group().does_nothing())
@@ -1326,8 +1343,11 @@ https://github.com/pocl/pocl/blob/master/lib/CL/devices/cuda/pocl-ptx-gen.cc
     if (Err)
       llvm::errs() << "MATERIALIZE ERR: " << Err << "\n";
     regularizeLlvmForSpirv(ll.module(), errs);
-    if (errs.empty())
-      writeSpirv(ll.module(), llvm::outs(), errs);
+    if (errs.empty()) {
+      std::error_code ec;
+      llvm::raw_fd_ostream fd("test.spv", ec);
+      writeSpirv(ll.module(), fd, errs);
+    }
     if (!errs.empty())
       llvm::errs() << "ERROR: " << errs << "\n";
 #endif
