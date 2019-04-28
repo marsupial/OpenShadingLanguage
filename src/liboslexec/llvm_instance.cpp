@@ -1339,6 +1339,15 @@ void main() {
     std::string errs;
     llvm::outs() << *ll.module() << "\n";
     ll.module()->setTargetTriple("spir64-unknown-unknown");
+    llvm::NamedMDNode* mdNode = ll.module()->getOrInsertNamedMetadata("spirv.Source");
+    llvm::Metadata* mdOps[3] = {
+        llvm::ConstantAsMetadata::get(
+            llvm::ConstantInt::get(ll.type_int(), 3)),
+        llvm::ConstantAsMetadata::get(
+            llvm::ConstantInt::get(ll.type_int(), 0)),
+        llvm::ConstantAsMetadata::get(
+            llvm::ConstantInt::get(ll.type_int(), 0)) };
+    mdNode->addOperand(llvm::MDNode::get(ll.context(), mdOps));
     auto Err = ll.module()->materializeAll();
     if (Err)
       llvm::errs() << "MATERIALIZE ERR: " << Err << "\n";
