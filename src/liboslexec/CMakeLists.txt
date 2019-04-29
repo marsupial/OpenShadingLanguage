@@ -219,3 +219,22 @@ if (OSL_BUILD_TESTS)
     target_link_libraries ( llvmutil_test oslexec ${Boost_LIBRARIES} ${CMAKE_DL_LIBS})
     add_test (unit_llvmutil "${CMAKE_BINARY_DIR}/src/liboslexec/llvmutil_test")
 endif ()
+
+
+ADD_CUSTOM_COMMAND ( OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/osl_spirv_bc.cpp
+  COMMAND ${LLVM_BC_GENERATOR}
+        -cc1 -triple spir64-unknown-unknown -S -emit-llvm -o ${CMAKE_CURRENT_BINARY_DIR}/osl_spirv.ll
+        -std=c++ osl.cl
+
+      COMMAND "${LLVM_DIRECTORY}/bin/llvm-as" -f
+        ${CMAKE_CURRENT_BINARY_DIR}/osl_spirv.ll
+        -o ${CMAKE_CURRENT_BINARY_DIR}/osl_spirv.bc
+      COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/serialize-bc.bash"
+        ${CMAKE_CURRENT_BINARY_DIR}/osl_spirv.bc ${CMAKE_CURRENT_BINARY_DIR}/osl_spirv_bc.cpp
+        "osl_spirv_ops"
+      MAIN_DEPENDENCY osl.cl
+      DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/serialize-bc.bash"
+        ${exec_headers} ${PROJECT_PUBLIC_HEADERS}
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" )
+
+add_custom_target(spirv DEPENDS osl_spirv_bc.cpp)
