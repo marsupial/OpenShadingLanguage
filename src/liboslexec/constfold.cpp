@@ -30,6 +30,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cmath>
 #include <cstdlib>
 
+#include <OSL/oslconfig.h> // Necessary to pull in the proper Imath headers
+
 #include <OpenImageIO/fmath.h>
 #include <OpenImageIO/sysutil.h>
 
