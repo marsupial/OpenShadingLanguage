@@ -708,22 +708,6 @@ ColorSystem::transformc (StringParam fromspace, StringParam tospace,
 
 
 
-OSL_HOSTDEVICE Dual2<Color3>
-ColorSystem::transformc (StringParam fromspace, StringParam tospace,
-                         const Dual2<Color3>& color, Context ctx) {
-    return transformc<Dual2<Color3>>(fromspace, tospace, color, ctx);
-}
-
-
-
-OSL_HOSTDEVICE Color3
-ColorSystem::transformc (StringParam fromspace, StringParam tospace,
-                         const Color3& color, Context ctx) {
-    return transformc<Color3>(fromspace, tospace, color, ctx);
-}
-
-
-
 OSL_HOSTDEVICE Color3
 ColorSystem::blackbody_rgb (float T)
 {
@@ -811,7 +795,7 @@ osl_transformc (void *sg, void *Cin, int Cin_derivs,
 
     if (Cout_derivs) {
         if (Cin_derivs) {
-            DCOL(Cout) = cs.transformc (from, to, DCOL(Cin), op_color_context(sg));
+            DCOL(Cout) = cs.transformc<Dual2<Color3>> (from, to, DCOL(Cin), op_color_context(sg));
             return true;
         } else {
             // We had output derivs, but not input. Zero the output
@@ -822,7 +806,7 @@ osl_transformc (void *sg, void *Cin, int Cin_derivs,
     }
 
     // No-derivs case
-    COL(Cout) = cs.transformc (from, to, COL(Cin), op_color_context(sg));
+    COL(Cout) = cs.transformc<Color3> (from, to, COL(Cin), op_color_context(sg));
     return true;
 }
 
