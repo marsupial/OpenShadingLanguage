@@ -43,7 +43,10 @@ before_install:
     - echo "Build platform name is $PLATFORM"
 
 install:
-    - if [ "$CXX" == "g++" ]; then export CXX="g++-${WHICHGCC}" ; fi
+    - if [ "$CXX" == "g++" ]; then
+          export CXX="g++-${WHICHGCC}" ;
+          export  CC="gcc-${WHICHGCC}" ;
+      fi
     - export USE_CCACHE=1
     - export CCACHE_CPP2=1
     # Temporary fix: Use LG's private openexr branch, until the
@@ -102,6 +105,9 @@ after_success:
     - if [ "$CODECOV" == 1 ]; then bash <(curl -s https://codecov.io/bash) ; fi
 
 after_failure:
+    - ls -l /home/travis/build/marsupial/OpenShadingLanguage/build/linux64
+    - nm /home/travis/build/marsupial/OpenShadingLanguage/build/linux64/src/liboslexec/liboslexec*.so
+    - nm /home/travis/build/marsupial/OpenShadingLanguage/build/linux64/src/liboslexec/liboslexec*.so | grep transformc
 # FIXME: find failed logs, stash them or send them to lg?
 
 branches:
