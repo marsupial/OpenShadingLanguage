@@ -111,17 +111,41 @@ public:
     OSL_HOSTDEVICE Color3
     from_rgb (StringParam fromspace, const Color3& C, Context);
 
+    OSL_HOSTDEVICE StringParam colorspace() const { return m_colorspace; }
+
+    OSL_HOSTDEVICE void error(StringParam src, StringParam dst, Context);
+
+    inline OSL_HOSTDEVICE Dual2<Color3>
+    transformc (StringParam fromspace, StringParam tospace,
+                const Dual2<Color3>& color, Context ctx) {
+        return transformc<Dual2<Color3>>(fromspace, tospace, color, ctx);
+    }
+
+    inline OSL_HOSTDEVICE Color3
+    transformc (StringParam fromspace, StringParam tospace,
+                const Color3& color, Context ctx) {
+        return transformc<Color3>(fromspace, tospace, color, ctx);
+    }
+
+    inline OSL_HOSTDEVICE Dual2<Color3>
+    ocio_transform (StringParam fromspace, StringParam tospace,
+                const Dual2<Color3>& color, Context ctx) {
+        return ocio_transform<Dual2<Color3>>(fromspace, tospace, color, ctx);
+    }
+
+    inline OSL_HOSTDEVICE Color3
+    ocio_transform (StringParam fromspace, StringParam tospace,
+                const Color3& color, Context ctx) {
+        return ocio_transform<Color3>(fromspace, tospace, color, ctx);
+    }
+
+private:
     template <typename Color> OSL_HOSTDEVICE Color
     transformc (StringParam fromspace, StringParam tospace, const Color& C, Context);
 
     template <typename Color> OSL_HOSTDEVICE Color
     ocio_transform (StringParam fromspace, StringParam tospace, const Color& C, Context);
 
-    OSL_HOSTDEVICE StringParam colorspace() const { return m_colorspace; }
-
-    OSL_HOSTDEVICE void error(StringParam src, StringParam dst, Context);
-
-private:
     // Derived/cached calculations from options:
     Color3 m_Red, m_Green, m_Blue;   ///< Color primaries (xyY)
     Color3 m_White;                  ///< White point (xyY)
