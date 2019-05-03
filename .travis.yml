@@ -106,7 +106,6 @@ after_success:
 
 after_failure:
     - ls -l /home/travis/build/marsupial/OpenShadingLanguage/build/linux64
-    - nm /home/travis/build/marsupial/OpenShadingLanguage/build/linux64/src/liboslexec/liboslexec*.so
     - nm /home/travis/build/marsupial/OpenShadingLanguage/build/linux64/src/liboslexec/liboslexec*.so | grep transformc
 # FIXME: find failed logs, stash them or send them to lg?
 
