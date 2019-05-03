@@ -68,19 +68,7 @@ using namespace OSL::pvt;
 
 OSL_NAMESPACE_ENTER
 
-namespace pvt {
-template <> OSL_HOSTDEVICE Color3
-ColorSystem::transformc<Color3> (StringParam fromspace, StringParam tospace, const Color3& C, Context);
 
-template <> OSL_HOSTDEVICE Dual2<Color3>
-ColorSystem::transformc<Dual2<Color3>> (StringParam fromspace, StringParam tospace, const Dual2<Color3>& C, Context);
-
-template <> OSL_HOSTDEVICE Color3
-ColorSystem::ocio_transform<Color3> (StringParam fromspace, StringParam tospace, const Color3& C, Context);
-
-template <> OSL_HOSTDEVICE Dual2<Color3>
-ColorSystem::ocio_transform<Dual2<Color3>> (StringParam fromspace, StringParam tospace, const Dual2<Color3>& C, Context);
-}
 
 ShadingSystem::ShadingSystem (RendererServices *renderer,
                               TextureSystem *texturesystem,
