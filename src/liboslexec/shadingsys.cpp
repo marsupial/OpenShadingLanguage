@@ -32,6 +32,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <fstream>
 #include <cstdlib>
 #include <mutex>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "oslexec_pvt.h"
 #include <OSL/genclosure.h>
@@ -3633,4 +3635,69 @@ osl_bind_interpolated_param (void *sg_, const void *name, long long type,
         return 1;
     }
     return 0;  // no such user data
+}
+
+class ShadingSystemImpl::AssignmentTracker {
+    using Assignments = std::unordered_set<const Symbol*>;
+    using value_type = std::pair<Assignments, bool>;
+    std::unordered_map<const Symbol*, value_type> m_string_assign;
+
+    template <typename T>
+    void track(value_type& val, T begin, T end) {
+        if (val.second) {
+            val.second = false;
+            val.first.clear();
+        }
+        val.first.insert(begin, end);
+    }
+
+public:
+    void track(Symbol& src, Symbol& dst);
+
+    const Assignments* constant_strings(const Symbol& forSym) {
+        auto itr = m_string_assign.find(&forSym);
+        if (itr == m_string_assign.end())
+            return nullptr;
+
+        itr->second.second = true;
+        return &itr->second.first;
+    }
+};
+
+void ShadingSystemImpl::AssignmentTracker::track(Symbol& src, Symbol& dst) {
+    if (!dst.typespec().is_string())
+        return;
+
+    ASSERT(src.typespec().is_string() && "assigning to string from something else");
+    //
+    if (!src.is_constant()) {
+        auto itr = m_string_assign.find(&src);
+        if (itr != m_string_assign.end()) {
+            track(m_string_assign[&dst], itr->second.first.begin(), itr->second.first.end());
+            return;
+        }
+    }
+    Symbol* srcPtr = &src;
+    track(m_string_assign[&dst], &srcPtr, (&srcPtr)+1);
+}
+
+void ShadingSystemImpl::track_assignment(Symbol& src, Symbol& dst, const Opcode &op) {
+    if (!m_tracker)
+        m_tracker.reset(new AssignmentTracker);
+
+    m_tracker->track(src, dst);
+}
+
+RendererServices::TextureHandle*
+ShadingSystemImpl::texture_handle(const Symbol& file, ShadingContext* ctx, RendererServices* renderer) {
+    if (!opt_texture_handle())
+        return nullptr;
+    if (file.is_constant())
+        return renderer->get_texture_handle (*(ustring *)file.data(), ctx);
+
+    const auto* all_possible = m_tracker->constant_strings(file);
+    if (all_possible && all_possible->size() == 1)
+        return renderer->get_texture_handle (*(ustring *)file.data(), ctx);
+
+    return nullptr;
 }

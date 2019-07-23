@@ -1118,6 +1118,8 @@ LLVMGEN (llvm_gen_assign)
     Opcode &op (rop.inst()->ops()[opnum]);
     Symbol& Result (*rop.opargsym (op, 0));
     Symbol& Src (*rop.opargsym (op, 1));
+    
+    rop.shadingsys().track_assignment(Src, Result, op);
 
     return rop.llvm_assign_impl (Result, Src);
 }
@@ -2414,10 +2416,7 @@ LLVMGEN (llvm_gen_texture)
                                     false /*3d*/, nchans,
                                     alpha, dalphadx, dalphady, errormessage);
 
-    RendererServices::TextureHandle *texture_handle = NULL;
-    if (Filename.is_constant() && rop.shadingsys().opt_texture_handle()) {
-        texture_handle = rop.renderer()->get_texture_handle (*(ustring *)Filename.data(), rop.shadingcontext());
-    }
+    RendererServices::TextureHandle *texture_handle = rop.shadingsys().texture_handle(Filename, rop.shadingcontext(), rop.renderer());
 
     // Now call the osl_texture function, passing the options and all the
     // explicit args like texture coordinates.

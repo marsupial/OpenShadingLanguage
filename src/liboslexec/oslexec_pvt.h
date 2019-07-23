@@ -651,6 +651,10 @@ public:
             return NULL;
     }
 
+    void track_assignment(Symbol& src, Symbol& dst, const Opcode &op);
+
+    RendererServices::TextureHandle* texture_handle(const Symbol& file, ShadingContext*, RendererServices*);
+    
     void pointcloud_stats (int search, int get, int results, int writes=0);
 
     /// Is the named symbol among the renderer outputs?
@@ -724,6 +728,9 @@ private:
 
     // Pre-compiled support library
     std::vector<char> m_lib_bitcode;      ///> Container for the pre-compiled library bitcode
+
+    class AssignmentTracker;
+    std::unique_ptr<AssignmentTracker> m_tracker;
 
     // Options
     int m_statslevel;                     ///< Statistics level
